@@ -227,6 +227,9 @@ long mlock_vma_pages_range(struct vm_area_struct *vma,
 	if (vma->vm_flags & (VM_IO | VM_PFNMAP))
 		goto no_mlock;
 
+	if (is_xip_hugetlb_mapping(vma))
+		goto no_mlock;
+
 	if (!((vma->vm_flags & (VM_DONTEXPAND | VM_RESERVED)) ||
 			is_vm_hugetlb_page(vma) ||
 			vma == get_gate_vma(current->mm))) {

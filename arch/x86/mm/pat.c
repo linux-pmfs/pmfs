@@ -163,6 +163,8 @@ static int pat_pagerange_is_ram(resource_size_t start, resource_size_t end)
 	int ram_page = 0, not_rampage = 0;
 	unsigned long page_nr;
 
+	if ((start >> PAGE_SHIFT) >= max_pfn)
+		return 0;
 	for (page_nr = (start >> PAGE_SHIFT); page_nr < (end >> PAGE_SHIFT);
 	     ++page_nr) {
 		/*

@@ -267,6 +267,10 @@ static inline int pud_none_or_clear_bad(pud_t *pud)
 {
 	if (pud_none(*pud))
 		return 1;
+	if (unlikely(pud_large(*pud))) {
+		pud_clear(pud);
+		return 1;
+	}
 	if (unlikely(pud_bad(*pud))) {
 		pud_clear_bad(pud);
 		return 1;
@@ -278,6 +282,10 @@ static inline int pmd_none_or_clear_bad(pmd_t *pmd)
 {
 	if (pmd_none(*pmd))
 		return 1;
+	if (unlikely(pmd_large(*pmd))) {
+		pmd_clear(pmd);
+		return 1;
+	}
 	if (unlikely(pmd_bad(*pmd))) {
 		pmd_clear_bad(pmd);
 		return 1;

@@ -115,7 +115,8 @@ extern unsigned int kobjsize(const void *objp);
 
 #define VM_CAN_NONLINEAR 0x08000000	/* Has ->fault & does nonlinear pages */
 #define VM_MIXEDMAP	0x10000000	/* Can contain "struct page" and pure PFN pages */
-#define VM_SAO		0x20000000	/* Strong Access Ordering (powerpc) */
+#define VM_SAO		0x00000000	/* Strong Access Ordering (powerpc) */
+#define VM_XIP_HUGETLB	0x20000000
 #define VM_PFN_AT_MMAP	0x40000000	/* PFNMAP vma that is fully mapped at mmap time */
 #define VM_MERGEABLE	0x80000000	/* KSM may merge identical pages */
 
@@ -157,6 +158,10 @@ extern pgprot_t protection_map[16];
 #define FAULT_FLAG_RETRY_NOWAIT	0x10	/* Don't drop mmap_sem and wait when retrying */
 #define FAULT_FLAG_KILLABLE	0x20	/* The fault task is in SIGKILL killable region */
 
+static inline int is_xip_hugetlb_mapping(struct vm_area_struct *vma)
+{
+	return !!(vma->vm_flags & VM_XIP_HUGETLB);
+}
 /*
  * This interface is used by x86 PAT code to identify a pfn mapping that is
  * linear over entire vma. This is to optimize PAT code that deals with
@@ -982,6 +987,13 @@ static inline int fixup_user_fault(struct task_struct *tsk,
 	return -EFAULT;
 }
 #endif
+
+extern pte_t *pte_alloc_pagesz(struct mm_struct *mm, unsigned long addr, 
+														unsigned long sz);
+extern pte_t *pte_offset_pagesz(struct mm_struct *mm, unsigned long addr, 
+														unsigned long *sz);
+extern void unmap_xip_hugetlb_range(struct vm_area_struct *vma,
+									unsigned long start, unsigned long end);
 
 extern int make_pages_present(unsigned long addr, unsigned long end);
 extern int access_process_vm(struct task_struct *tsk, unsigned long addr, void *buf, int len, int write);

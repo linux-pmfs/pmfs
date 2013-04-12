@@ -5257,7 +5257,7 @@ static unsigned long mem_cgroup_count_precharge(struct mm_struct *mm)
 			.mm = mm,
 			.private = vma,
 		};
-		if (is_vm_hugetlb_page(vma))
+		if (is_vm_hugetlb_page(vma) || is_xip_hugetlb_mapping(vma))
 			continue;
 		walk_page_range(vma->vm_start, vma->vm_end,
 					&mem_cgroup_count_precharge_walk);
@@ -5482,7 +5482,7 @@ retry:
 			.mm = mm,
 			.private = vma,
 		};
-		if (is_vm_hugetlb_page(vma))
+		if (is_vm_hugetlb_page(vma) || is_xip_hugetlb_mapping(vma))
 			continue;
 		ret = walk_page_range(vma->vm_start, vma->vm_end,
 						&mem_cgroup_move_charge_walk);

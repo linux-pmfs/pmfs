@@ -1924,6 +1924,9 @@ static int __split_vma(struct mm_struct * mm, struct vm_area_struct * vma,
 	struct vm_area_struct *new;
 	int err = -ENOMEM;
 
+	if (is_xip_hugetlb_mapping(vma))
+		return -EINVAL;
+
 	if (is_vm_hugetlb_page(vma) && (addr &
 					~(huge_page_mask(hstate_vma(vma)))))
 		return -EINVAL;

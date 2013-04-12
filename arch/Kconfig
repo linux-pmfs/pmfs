@@ -101,6 +101,9 @@ config USER_RETURN_NOTIFIER
 config HAVE_IOREMAP_PROT
 	bool
 
+config HAVE_SET_MEMORY_RO
+	bool
+
 config HAVE_KPROBES
 	bool
 

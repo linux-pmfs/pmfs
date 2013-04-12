@@ -1071,6 +1071,10 @@ int copy_page_range(struct mm_struct *dst_mm, struct mm_struct *src_mm,
 			return 0;
 	}
 
+	/* FIXME: For now, don't copy ptes and let it fault. */
+	if (is_xip_hugetlb_mapping(vma))
+		return 0;
+
 	if (is_vm_hugetlb_page(vma))
 		return copy_hugetlb_page_range(dst_mm, src_mm, vma);
 
@@ -1373,6 +1377,9 @@ unsigned long unmap_vmas(struct mmu_gather *tlb,
 					unmap_hugepage_range(vma, start, end, NULL);
 
 				start = end;
+			} else if (is_xip_hugetlb_mapping(vma)) {
+				unmap_xip_hugetlb_range(vma, start, end);
+				start = end;
 			} else
 				start = unmap_page_range(tlb, vma, start, end, details);
 		}
@@ -1591,6 +1598,54 @@ static inline int stack_guard_page(struct vm_area_struct *vma, unsigned long add
 	       stack_guard_page_end(vma, addr+PAGE_SIZE);
 }
 
+/* FIXME : Move it to the right place ! */
+static int follow_xip_hugetlb_page(
+		struct mm_struct *mm, struct vm_area_struct *vma,
+			unsigned long *position, int *length, int i, unsigned int flags)
+{
+	unsigned long vaddr = *position;
+	int remainder = *length;
+
+	while (vaddr < vma->vm_end && remainder) {
+		int err, absent;
+		pte_t *pte;
+		unsigned long size;
+		struct vm_fault vmf;
+
+		pte = pte_offset_pagesz(mm, vaddr, &size);
+		absent = !pte || pte_none(*pte);
+
+		/* populate an entry */
+		if (absent || ((flags & FOLL_WRITE) && !pte_write(*pte))) {
+			vmf.virtual_address = (void __user *)(vaddr & PAGE_MASK);
+			vmf.pgoff = (((vaddr & PAGE_MASK) - vma->vm_start) >> PAGE_SHIFT)
+															+ vma->vm_pgoff;
+			vmf.flags = (flags & FOLL_WRITE) ? FAULT_FLAG_WRITE : 0;
+			vmf.page = NULL;
+			err = vma->vm_ops->fault(vma, &vmf);
+
+			if (!err || (err == VM_FAULT_NOPAGE)) {
+				pte = pte_offset_pagesz(mm, vaddr, &size);
+				vaddr = (vaddr & ~(size-1)) + size;
+				remainder -= size>>PAGE_SHIFT;
+				i += size>>PAGE_SHIFT;
+				continue;
+			}
+
+			remainder = 0;
+			break;
+		}
+
+		vaddr = (vaddr & ~(size-1)) + size;
+		remainder -= size>>PAGE_SHIFT;
+		i += size>>PAGE_SHIFT;
+	}
+
+	*length = remainder;
+	*position = vaddr;
+	return i ? i : -EFAULT;
+}
+
 /**
  * __get_user_pages() - pin user pages in memory
  * @tsk:	task_struct of target task
@@ -1716,9 +1771,20 @@ int __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
 
 		if (!vma ||
 		    (vma->vm_flags & (VM_IO | VM_PFNMAP)) ||
-		    !(vm_flags & vma->vm_flags))
+		    !(vm_flags & vma->vm_flags) || is_xip_hugetlb_mapping(vma))
 			return i ? : -EFAULT;
 
+#if 0
+		/* FIXME : Requires more testing */
+		if (is_xip_hugetlb_mapping(vma)) {
+			/* caller expects vmas or pages to be populated. */
+			if (vmas || pages)
+				return -EFAULT;
+			i = follow_xip_hugetlb_page(mm, vma,
+						&start, &nr_pages, i, gup_flags);
+			continue;
+		}
+#endif
 		if (is_vm_hugetlb_page(vma)) {
 			i = follow_hugetlb_page(mm, vma, pages, vmas,
 					&start, &nr_pages, i, gup_flags);
@@ -3474,6 +3540,21 @@ int handle_mm_fault(struct mm_struct *mm, struct vm_area_struct *vma,
 	/* do counter updates before entering really critical section. */
 	check_sync_rss_stat(current);
 
+	/* FIXME : Can't find a single flag in vm_area_struct->vma_flags.  */
+	if (is_xip_hugetlb_mapping(vma))
+	{
+		int err;
+		struct vm_fault vmf;
+		vmf.virtual_address = (void __user *)(address & PAGE_MASK);
+		vmf.pgoff = (((address & PAGE_MASK) - vma->vm_start) >> PAGE_SHIFT)
+															+ vma->vm_pgoff;
+		vmf.flags = flags;
+		vmf.page = NULL;
+		err = vma->vm_ops->fault(vma, &vmf);
+		if (!err || (err == VM_FAULT_NOPAGE))
+			return 0;
+	}
+
 	if (unlikely(is_vm_hugetlb_page(vma)))
 		return hugetlb_fault(mm, vma, address, flags);
 
@@ -3575,6 +3656,93 @@ int __pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
 }
 #endif /* __PAGETABLE_PMD_FOLDED */
 
+/****************************************************************************/
+/* XIP_HUGETLB support */
+pte_t *pte_offset_pagesz(struct mm_struct *mm, unsigned long addr,
+													unsigned long *sz)
+{
+	pgd_t *pgd;
+	pud_t *pud;
+	pmd_t *pmd = NULL;
+
+	pgd = pgd_offset(mm, addr);
+	if (!pgd_present(*pgd)) {
+		*sz = PGDIR_SIZE;
+		return (pte_t *)pgd;
+	}
+
+	pud = pud_offset(pgd, addr);
+	if (pud_none(*pud) || pud_large(*pud)) {
+		*sz = PUD_SIZE;
+		return (pte_t *)pud;
+	}
+	pmd = pmd_offset(pud, addr);
+	//if (pmd_none(*pmd) || pmd_large(*pmd)) {
+	*sz = PMD_SIZE;
+	return (pte_t *)pmd;
+}
+EXPORT_SYMBOL(pte_offset_pagesz);
+
+pte_t *pte_alloc_pagesz(struct mm_struct *mm, unsigned long addr, 
+													unsigned long sz)
+{
+	pgd_t *pgd;
+	pud_t *pud;
+	pte_t *pte = NULL;
+
+	pgd = pgd_offset(mm, addr);
+	pud = pud_alloc(mm, pgd, addr);
+	if (pud) {
+		if (sz == PUD_SIZE) {
+			pte = (pte_t *)pud;
+		} else {
+			BUG_ON(sz != PMD_SIZE);
+			pte = (pte_t *) pmd_alloc(mm, pud, addr);
+		}
+	}
+	BUG_ON(pte && !pte_none(*pte) && !pte_huge(*pte));
+
+	return pte;
+}
+EXPORT_SYMBOL(pte_alloc_pagesz);
+
+static void __unmap_xip_hugetlb_range(struct vm_area_struct *vma,
+								unsigned long start, unsigned long end)
+{
+	struct mm_struct *mm = vma->vm_mm;
+	unsigned long address;
+	pte_t *ptep;
+	pte_t pte;
+	unsigned long sz;
+
+	WARN_ON(!is_xip_hugetlb_mapping(vma));
+
+	mmu_notifier_invalidate_range_start(mm, start, end);
+	spin_lock(&mm->page_table_lock);
+	for (address = start, sz=PMD_SIZE; address < end; address += sz) {
+		ptep = pte_offset_pagesz(mm, address, &sz);
+		if (!ptep)
+			continue;
+
+		pte = ptep_get_and_clear(mm, address, ptep);
+		if (pte_none(pte))
+			continue;
+	}
+	flush_tlb_range(vma, start, end);
+	spin_unlock(&mm->page_table_lock);
+	mmu_notifier_invalidate_range_end(mm, start, end);
+}
+
+void unmap_xip_hugetlb_range(struct vm_area_struct *vma,
+							unsigned long start, unsigned long end)
+{
+	mutex_lock(&vma->vm_file->f_mapping->i_mmap_mutex);
+	__unmap_xip_hugetlb_range(vma, start, end);
+	mutex_unlock(&vma->vm_file->f_mapping->i_mmap_mutex);
+}
+EXPORT_SYMBOL(unmap_xip_hugetlb_range);
+
+/****************************************************************************/
 int make_pages_present(unsigned long addr, unsigned long end)
 {
 	int ret, len, write;

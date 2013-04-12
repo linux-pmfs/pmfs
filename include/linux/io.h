@@ -38,6 +38,16 @@ static inline int ioremap_page_range(unsigned long addr, unsigned long end,
 }
 #endif
 
+#ifdef CONFIG_MMU
+int ioremap_hpage_range(unsigned long addr, unsigned long end,
+		       phys_addr_t phys_addr, pgprot_t prot);
+#else
+static inline int ioremap_hpage_range(unsigned long addr, unsigned long end,
+				     phys_addr_t phys_addr, pgprot_t prot)
+{
+	return 0;
+}
+#endif
 /*
  * Managed iomap interface
  */
