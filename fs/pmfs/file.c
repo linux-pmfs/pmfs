@@ -191,6 +191,10 @@ int pmfs_fsync(struct file *file, loff_t start, loff_t end, int datasync)
 	loff_t isize;
 	int error;
 
+	/* if the file is not mmap'ed, there is no need to do clflushes */
+	if (mapping_mapped(mapping) == 0)
+		goto persist;
+
 	end += 1; /* end is inclusive. We like our indices normal please ! */
 
 	isize = i_size_read(inode);
@@ -234,7 +238,7 @@ int pmfs_fsync(struct file *file, loff_t start, loff_t end, int datasync)
 
 		start += nr_flush_bytes;
 	} while (start < end);
-
+persist:
 	PERSISTENT_MARK();
 	PERSISTENT_BARRIER();
 	return 0;

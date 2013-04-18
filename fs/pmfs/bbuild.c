@@ -423,28 +423,33 @@ static int __pmfs_build_blocknode_map(struct super_block *sb,
 	unsigned long next = 1;
 	unsigned long low = 0;
 
-        while (1) {
-                next = find_next_bit(bitmap, bsize, next);
-                if (next == bsize)
-                        break;
-                low = next;
-                next = find_next_zero_bit(bitmap, bsize, next);
-                if (pmfs_alloc_insert_blocknode_map(sb, low << scale , (next << scale) - 1)) {
-                        printk("PMFS: Error could not insert 0x%lx-0x%lx\n", low << scale, ((next << scale) - 1));
-                }
-                if (next == bsize)
-                        break;
-        }
-        return 0;
+	while (1) {
+		next = find_next_bit(bitmap, bsize, next);
+		if (next == bsize)
+			break;
+		low = next;
+		next = find_next_zero_bit(bitmap, bsize, next);
+		if (pmfs_alloc_insert_blocknode_map(sb, low << scale ,
+				(next << scale) - 1)) {
+			printk("PMFS: Error could not insert 0x%lx-0x%lx\n",
+				low << scale, ((next << scale) - 1));
+		}
+		if (next == bsize)
+			break;
+	}
+	return 0;
 }
 	
 static int pmfs_build_blocknode_map(struct super_block *sb)
 {
 	struct pmfs_sb_info *sbi = PMFS_SB(sb);
 	
-	__pmfs_build_blocknode_map(sb, sbi->bitmap_4k, sbi->bitmap_4k_size * 8, PAGE_SHIFT - 12);
-	__pmfs_build_blocknode_map(sb, sbi->bitmap_2M, sbi->bitmap_2M_size * 8, PAGE_SHIFT_2M - 12);
-	__pmfs_build_blocknode_map(sb, sbi->bitmap_1G, sbi->bitmap_1G_size * 8, PAGE_SHIFT_1G - 12);
+	__pmfs_build_blocknode_map(sb, sbi->bitmap_4k, sbi->bitmap_4k_size * 8,
+		PAGE_SHIFT - 12);
+	__pmfs_build_blocknode_map(sb, sbi->bitmap_2M, sbi->bitmap_2M_size * 8,
+		PAGE_SHIFT_2M - 12);
+	__pmfs_build_blocknode_map(sb, sbi->bitmap_1G, sbi->bitmap_1G_size * 8,
+		PAGE_SHIFT_1G - 12);
 
 	return 0;
 }
