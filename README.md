@@ -46,8 +46,8 @@ options supported by pmfs. Some of the main options include:
 
 wprotect: This option protects pmfs from stray writes (e.g., because of kernel
 bugs). It makes sure that the file system is mapped read-only into the kernel
-and makes it writable only for a brief period when writing to it. (EXPERIMENTAL
-- Use with Caution).  
+and makes it writable only for a brief period when writing to it. (EXPERIMENTAL,
+Use with Caution).  
 
 jsize: This option specifies the journal size. Default is 4MB.
 
