@@ -133,8 +133,13 @@ blocksize is 1GB, the file can grow upto 128 PB.
 guaranteed not to be used on x86_64.
 
 
-Contact Information
-=====================
+Contributing
+============
 
 Please send bug reports/comments/feedback to the PMFS development
-list: linux-pmfs@intel.com
+list: linux-pmfs@lists.infradead.org
+You are also encouraged to subscribe to the mailing list
+by sending an email with the Subject line **subscribe** to
+linux-pmfs-request@lists.infradead.org.
+
+We prefer pull requests as patches sent to the mailing list.
