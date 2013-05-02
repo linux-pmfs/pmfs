@@ -38,7 +38,7 @@ passing 'init=' mount option.
 
 For example,
 
-#mount -t pmfs -o physaddr=0x100000000,init=2G none /mnt/pmfs
+<pre>#mount -t pmfs -o physaddr=0x100000000,init=2G none /mnt/pmfs</pre>
 
 The above command will create a PMFS file system in the 2GB region starting at
 0x100000000 (4GB) and mount it at /mnt/pmfs.  There are many other mount time
@@ -57,12 +57,12 @@ files.
 backing: This option specifies a disk based file which should be used as a
 persistent backing store for pmfs during mount and unmount.
 
-#mount -t pmfs -o physaddr=0x100000000,init=2G,backing="/data/pmfs.img" none /mnt/pmfs
+<pre>#mount -t pmfs -o physaddr=0x100000000,init=2G,backing="/data/pmfs.img" none /mnt/pmfs</pre>
 
 The above example initializes a 2GB PMFS and during unmount it saves the file
 system into a file /data/pmfs.img
 
-#mount -t pmfs -o physaddr=0x100000000,backing="/data/pmfs.img" none /mnt/pmfs
+<pre>#mount -t pmfs -o physaddr=0x100000000,backing="/data/pmfs.img" none /mnt/pmfs</pre>
 
 The above example loads the PMFS from /data/pmfs.img during mount and saves
 the file system to /data/pmfs.img during unmount.
@@ -81,12 +81,12 @@ If backing_opt is not specified, PMFS will load the file system from backing
 file (if init= option is not specified) during mount and store the file system
 to the backing file during unmount.
 
-#mount -t pmfs -o physaddr=0x100000000,backing="/data/pmfs.img",backing_opt=2 none /mnt/pmfs
+<pre>#mount -t pmfs -o physaddr=0x100000000,backing="/data/pmfs.img",backing_opt=2 none /mnt/pmfs</pre>
 
 The above example loads the PMFS from /data/pmfs.img during mount but does not
 save the file system to /data/pmfs.img during unmount.
 
-#mount -t pmfs -o physaddr=0x100000000,backing="/data/pmfs.img",backing_opt=1 none /mnt/pmfs
+<pre>#mount -t pmfs -o physaddr=0x100000000,backing="/data/pmfs.img",backing_opt=1 none /mnt/pmfs</pre>
 
 The above example assumes that there is a PMFS already present at the specified
 physical address (create during an earlier mount). It uses that same PMFS
@@ -117,19 +117,19 @@ will be used for file's data-blocks.
 Current Limitations
 ===================
 
-a) PMFS uses a memory region not used by the kernel. Hence the memory needs to
+* PMFS uses a memory region not used by the kernel. Hence the memory needs to
 be reserved by using the memmap= option or using BIOS ACPI tables.
 
-b) Because of multiple blocksize support, PMFS supports multiple max file
+* Because of multiple blocksize support, PMFS supports multiple max file
 sizes. For example, if the file's block size is 4KB, the file can grow upto
 512 GB in size, if blocksize is 2MB, file can grow upto 256 TB, and if the
 blocksize is 1GB, the file can grow upto 128 PB.
 
-c) PMFS does not currently support extended attributes.
+* PMFS does not currently support extended attributes.
 
-d) PMFS currently only works with x86_64 kernels.
+* PMFS currently only works with x86_64 kernels.
 
-e) We ran out of bits in vma's vm_flags field, so we reused a flag that is
+* We ran out of bits in vma’s vm_flags field, so we reused a flag that is
 guaranteed not to be used on x86_64.
 
 
