@@ -173,6 +173,11 @@ long __mlock_vma_pages_range(struct vm_area_struct *vma,
 	VM_BUG_ON(end   > vma->vm_end);
 	VM_BUG_ON(!rwsem_is_locked(&mm->mmap_sem));
 
+	if (is_xip_hugetlb_mapping(vma)) {
+		vma->vm_flags &= ~VM_LOCKED;
+		return nr_pages;
+	}
+
 	gup_flags = FOLL_TOUCH | FOLL_MLOCK;
 	/*
 	 * We want to touch writable mappings with a write fault in order

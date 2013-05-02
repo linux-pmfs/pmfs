@@ -30,9 +30,10 @@
  */
 SYSCALL_DEFINE3(msync, unsigned long, start, size_t, len, int, flags)
 {
-	unsigned long end;
+	unsigned long end, fsync_start, fsync_end;
 	struct mm_struct *mm = current->mm;
 	struct vm_area_struct *vma;
+	size_t file_offset;
 	int unmapped_error = 0;
 	int error = -EINVAL;
 
@@ -77,12 +78,17 @@ SYSCALL_DEFINE3(msync, unsigned long, start, size_t, len, int, flags)
 			goto out_unlock;
 		}
 		file = vma->vm_file;
+		fsync_start = start;
+		fsync_end = min(end, vma->vm_end);
 		start = vma->vm_end;
 		if ((flags & MS_SYNC) && file &&
 				(vma->vm_flags & VM_SHARED)) {
 			get_file(file);
 			up_read(&mm->mmap_sem);
-			error = vfs_fsync(file, 0);
+			file_offset = vma->vm_pgoff * PAGE_SIZE;
+			error = vfs_fsync_range(file, 
+					file_offset + fsync_start - vma->vm_start,
+					file_offset + fsync_end - vma->vm_start - 1, 0);
 			fput(file);
 			if (error || start >= end)
 				goto out;

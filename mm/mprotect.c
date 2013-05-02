@@ -250,6 +250,10 @@ mprotect_fixup(struct vm_area_struct *vma, struct vm_area_struct **pprev,
 		return 0;
 	}
 
+	/* FIXME: Do nothing for now */	
+	if (is_xip_hugetlb_mapping(vma))
+		return -EINVAL;
+
 	/*
 	 * If we make a private mapping writable we increase our commit;
 	 * but (without finer accounting) cannot reduce our commit if we

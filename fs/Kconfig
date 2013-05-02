@@ -17,7 +17,7 @@ source "fs/ext4/Kconfig"
 config FS_XIP
 # execute in place
 	bool
-	depends on EXT2_FS_XIP
+	depends on EXT2_FS_XIP || PMFS_XIP
 	default y
 
 source "fs/jbd/Kconfig"
@@ -209,6 +209,7 @@ source "fs/romfs/Kconfig"
 source "fs/pstore/Kconfig"
 source "fs/sysv/Kconfig"
 source "fs/ufs/Kconfig"
+source "fs/pmfs/Kconfig"
 source "fs/exofs/Kconfig"
 source "fs/f2fs/Kconfig"
 

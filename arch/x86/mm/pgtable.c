@@ -1,5 +1,6 @@
 #include <linux/mm.h>
 #include <linux/gfp.h>
+#include <linux/export.h>
 #include <asm/pgalloc.h>
 #include <asm/pgtable.h>
 #include <asm/tlb.h>
@@ -328,6 +329,7 @@ int ptep_set_access_flags(struct vm_area_struct *vma,
 
 	return changed;
 }
+EXPORT_SYMBOL(ptep_set_access_flags);
 
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
 int pmdp_set_access_flags(struct vm_area_struct *vma,

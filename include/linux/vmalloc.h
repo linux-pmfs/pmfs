@@ -21,7 +21,7 @@ struct vm_area_struct;		/* vma defining user mapping in mm_types.h */
  * Can be overriden by arch-specific value.
  */
 #ifndef IOREMAP_MAX_ORDER
-#define IOREMAP_MAX_ORDER	(7 + PAGE_SHIFT)	/* 128 pages */
+#define IOREMAP_MAX_ORDER	(PUD_SHIFT)	/* 1G pages */
 #endif
 
 struct vm_struct {

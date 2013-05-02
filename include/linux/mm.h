@@ -84,6 +84,7 @@ extern unsigned int kobjsize(const void *objp);
 #define VM_MAYSHARE	0x00000080
 
 #define VM_GROWSDOWN	0x00000100	/* general info on the segment */
+#define VM_XIP_HUGETLB	0x00000200
 #define VM_PFNMAP	0x00000400	/* Page-ranges managed without "struct page", just pure PFN */
 #define VM_DENYWRITE	0x00000800	/* ETXTBSY on write attempts.. */
 
@@ -164,6 +165,11 @@ extern pgprot_t protection_map[16];
 #define FAULT_FLAG_RETRY_NOWAIT	0x10	/* Don't drop mmap_sem and wait when retrying */
 #define FAULT_FLAG_KILLABLE	0x20	/* The fault task is in SIGKILL killable region */
 #define FAULT_FLAG_TRIED	0x40	/* second try */
+
+static inline int is_xip_hugetlb_mapping(struct vm_area_struct *vma)
+{
+	return !!(vma->vm_flags & VM_XIP_HUGETLB);
+}
 
 /*
  * vm_fault is filled by the the pagefault handler and passed to the vma's
@@ -1009,6 +1015,13 @@ static inline int fixup_user_fault(struct task_struct *tsk,
 	return -EFAULT;
 }
 #endif
+
+extern pte_t *pte_alloc_pagesz(struct mm_struct *mm, unsigned long addr, 
+														unsigned long sz);
+extern pte_t *pte_offset_pagesz(struct mm_struct *mm, unsigned long addr, 
+														unsigned long *sz);
+extern void unmap_xip_hugetlb_range(struct vm_area_struct *vma,
+									unsigned long start, unsigned long end);
 
 extern int access_process_vm(struct task_struct *tsk, unsigned long addr, void *buf, int len, int write);
 extern int access_remote_vm(struct mm_struct *mm, unsigned long addr,

@@ -107,7 +107,11 @@ static void __init init_gbpages(void)
 	if (direct_gbpages && cpu_has_gbpages)
 		printk(KERN_INFO "Using GB pages for direct mapping\n");
 	else
+	{
+		printk(KERN_INFO "direct_gbpages(%d). cpu_has_gbpages(%d)."
+				"GB pages not supported.\n", direct_gbpages, cpu_has_gbpages);
 		direct_gbpages = 0;
+	}
 #endif
 }
 
