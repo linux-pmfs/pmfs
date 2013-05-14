@@ -47,12 +47,12 @@ options supported by pmfs. Some of the main options include:
 wprotect: This option protects pmfs from stray writes (e.g., because of kernel
 bugs). It makes sure that the file system is mapped read-only into the kernel
 and makes it writable only for a brief period when writing to it. (EXPERIMENTAL,
-Use with Caution).  
+Use with Caution).
 
 jsize: This option specifies the journal size. Default is 4MB.
 
 hugemmap: This option enables support for using huge pages in memory-mapped
-files.  
+files.
 
 backing: This option specifies a disk based file which should be used as a
 persistent backing store for pmfs during mount and unmount.
@@ -91,12 +91,12 @@ save the file system to /data/pmfs.img during unmount.
 The above example assumes that there is a PMFS already present at the specified
 physical address (create during an earlier mount). It uses that same PMFS
 instead of loading it from /data/pmfs.img. It, however, saves the file system
-to /data/pmfs.img during unmount. 
+to /data/pmfs.img during unmount.
 
-For full list of options, please refer to the source code. 
+For full list of options, please refer to the source code.
 
 
-Using Huge Pages with PMFS 
+Using Huge Pages with PMFS
 ==========================
 
 PMFS supports the use of huge-pages through the fallocate(), and ftruncate()
@@ -129,9 +129,6 @@ blocksize is 1GB, the file can grow upto 128 PB.
 
 * PMFS currently only works with x86_64 kernels.
 
-* We ran out of bits in vma’s vm_flags field, so we reused a flag that is
-guaranteed not to be used on x86_64.
-
 
 Contributing
 ============
@@ -143,3 +140,5 @@ by sending an email with the Subject line **subscribe** to
 linux-pmfs-request@lists.infradead.org.
 
 We prefer pull requests as patches sent to the mailing list.
+
+Also feel free to join us on the IRC channel #pmfs on irc.oftc.net.
