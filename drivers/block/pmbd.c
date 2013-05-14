@@ -226,7 +226,7 @@ static unsigned g_pmbd_type 		= PMBD_CONFIG_HIGHMEM;	/* vmalloc(PMBD_CONFIG_VMAL
 static unsigned g_pmbd_pmap		= FALSE;		/* use pmap_atomic() to map/unmap space on demand  */
 static unsigned g_pmbd_nts		= FALSE;		/* use non-temporal store (movntq) */
 static unsigned g_pmbd_wb		= FALSE;		/* use write barrier */
-static unsigned g_pmbd_fua		= TRUE;			/* use fua support (Linux 3.2.1) */
+static unsigned g_pmbd_fua		= TRUE;	/* use fua support */
 static unsigned g_pmbd_mergeable 	= TRUE;			/* mergeable or not  */
 static unsigned g_pmbd_cpu_cache_clflush= FALSE;	 	/* flush CPU cache or not*/
 static unsigned g_pmbd_wr_protect	= FALSE;		/* flip PTE R/W bits for write protection */
@@ -4382,12 +4382,10 @@ static PMBD_DEVICE_T *pmbd_alloc(int i)
 
 	/* set flush capability, otherwise, WRITE_FLUSH and WRITE_FUA will be filtered in
  	   generic_make_request() */
-	if (PMBD_USE_FUA() && PMBD_USE_WB())
+	if (PMBD_USE_FUA())
 		blk_queue_flush(pmbd->pmbd_queue, REQ_FLUSH | REQ_FUA);
 	else if (PMBD_USE_WB())
 		blk_queue_flush(pmbd->pmbd_queue, REQ_FLUSH);
-	else if (PMBD_USE_FUA())
-		blk_queue_flush(pmbd->pmbd_queue, REQ_FUA);
 
 	blk_queue_max_hw_sectors(pmbd->pmbd_queue, 1024);
 	blk_queue_bounce_limit(pmbd->pmbd_queue, BLK_BOUNCE_ANY);
