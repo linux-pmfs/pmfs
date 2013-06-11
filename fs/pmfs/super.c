@@ -677,7 +677,7 @@ static int pmfs_fill_super(struct super_block *sb, void *data, int silent)
 
 	/* Init with default values */
 	INIT_LIST_HEAD(&sbi->block_inuse_head);
-	sbi->mode = (S_IRWXUGO | S_ISVTX);
+	sbi->mode = (S_IRUGO | S_IXUGO | S_IWUSR);
 	sbi->uid = current_fsuid();
 	sbi->gid = current_fsgid();
 	set_opt(sbi->s_mount_opt, XIP);
