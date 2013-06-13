@@ -20,6 +20,7 @@
 #include <linux/mpage.h>
 #include <linux/backing-dev.h>
 #include <linux/types.h>
+#include <linux/ratelimit.h>
 #include "pmfs.h"
 #include "xip.h"
 
@@ -1238,8 +1239,9 @@ void pmfs_dirty_inode(struct inode *inode, int flags)
 	pmfs_memlock_inode(sb, pi);
 	pmfs_flush_buffer(&pi->i_atime, sizeof(pi->i_atime), true);
 
+	/* FIXME: Is this check needed? */
 	if (pmfs_is_inode_dirty(inode, pi))
-		BUG();
+		printk_ratelimited(KERN_ERR "pmfs: inode was dirty!\n");
 }
 
 /*
