@@ -133,7 +133,7 @@ extern struct dentry *pmfs_get_parent(struct dentry *child);
 
 /* inode.c */
 extern unsigned int pmfs_free_inode_subtree(struct super_block *sb,
-                u64 root, u32 height, u32 btype, loff_t end);
+		u64 root, u32 height, u32 btype, unsigned long last_blocknr);
 extern int __pmfs_alloc_blocks(pmfs_transaction_t *trans,
 		struct super_block *sb, struct pmfs_inode *pi,
 		unsigned long file_blocknr, unsigned int num, bool zero);

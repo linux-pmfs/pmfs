@@ -315,11 +315,10 @@ static int recursive_truncate_blocks(struct super_block *sb, u64 block,
 }
 
 unsigned int pmfs_free_inode_subtree(struct super_block *sb,
-		u64 root, u32 height, u32 btype, loff_t end)
+		u64 root, u32 height, u32 btype, unsigned long last_blocknr)
 {
-	unsigned long first_blocknr, last_blocknr;
+	unsigned long first_blocknr;
 	unsigned int freed;
-	unsigned int data_bits = blk_type_to_shift[btype];
 	bool mpty;
 
 	if (!root)
@@ -332,7 +331,6 @@ unsigned int pmfs_free_inode_subtree(struct super_block *sb,
 		freed = 1;
 	} else {
 		first_blocknr = 0;
-		last_blocknr = (end - 1) >> data_bits;
 
 		freed = recursive_truncate_blocks(sb, root, height, btype,
 			first_blocknr, last_blocknr, &mpty);
@@ -420,6 +418,18 @@ static inline unsigned long pmfs_inode_count_iblocks (struct super_block *sb,
 	return (iblocks << (pmfs_inode_blk_shift(pi) - sb->s_blocksize_bits));
 }
 
+/* Support for sparse files: even though pi->i_size may indicate a certain
+ * last_blocknr, it may not be true for sparse files. Specifically, last_blocknr
+ * can not be more than the maximum allowed by the inode's tree height.
+ */
+static inline unsigned long pmfs_sparse_last_blocknr(unsigned int height,
+		unsigned long last_blocknr)
+{
+	if (last_blocknr >= (1UL << (height * META_BLK_SHIFT)))
+		last_blocknr = (1UL << (height * META_BLK_SHIFT)) - 1;
+	return last_blocknr;
+}
+
 /*
  * Free data blocks from inode in the range start <=> end
  */
@@ -451,6 +461,8 @@ static void __pmfs_truncate_blocks(struct inode *inode, loff_t start,
 		if (end == 0)
 			goto end_truncate_blocks;
 		last_blocknr = (end - 1) >> data_bits;
+		last_blocknr = pmfs_sparse_last_blocknr(pi->height,
+			last_blocknr);
 	}
 
 	if (first_blocknr > last_blocknr)
@@ -996,6 +1008,7 @@ void pmfs_evict_inode(struct inode *inode)
 	struct super_block *sb = inode->i_sb;
 	struct pmfs_inode *pi = pmfs_get_inode(sb, inode->i_ino);
 	u64 root;
+	unsigned long last_blocknr;
 	unsigned int height, btype;
 	int err = 0;
 
@@ -1015,8 +1028,19 @@ void pmfs_evict_inode(struct inode *inode)
 		if (err)
 			goto out;
 		/* then free the blocks from the inode's b-tree */
-		pmfs_free_inode_subtree(sb, root, height, btype,
-			inode->i_size);
+		if (pi->i_flags & cpu_to_le32(PMFS_EOFBLOCKS_FL)) {
+			last_blocknr = (1UL << (pi->height * META_BLK_SHIFT))
+			    - 1;
+		} else {
+			if (likely(inode->i_size))
+				last_blocknr = (inode->i_size - 1) >>
+					pmfs_inode_blk_shift(pi);
+			else
+				last_blocknr = 0;
+			last_blocknr = pmfs_sparse_last_blocknr(pi->height,
+				last_blocknr);
+		}
+		pmfs_free_inode_subtree(sb, root, height, btype, last_blocknr);
 		inode->i_mtime = inode->i_ctime = CURRENT_TIME_SEC;
 		inode->i_size = 0;
 	}

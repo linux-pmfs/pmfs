@@ -82,8 +82,9 @@ static bool pmfs_can_skip_full_scan(struct super_block *sb)
 	struct pmfs_inode *pi =  pmfs_get_inode(sb, PMFS_BLOCKNODE_IN0);
 	struct pmfs_super_block *super = pmfs_get_super(sb);
 	struct pmfs_sb_info *sbi = PMFS_SB(sb);
-	u64 root, isize;
+	u64 root;
 	unsigned int height, btype;
+	unsigned long last_blocknr;
 
 	if (!pi->root)
 	{
@@ -103,12 +104,14 @@ static bool pmfs_can_skip_full_scan(struct super_block *sb)
 	root = pi->root;
 	height = pi->height;
 	btype = pi->i_blk_type;
-	isize = le64_to_cpu(pi->i_size);
+	/* pi->i_size can not be zero */
+	last_blocknr = (le64_to_cpu(pi->i_size) - 1) >>
+					pmfs_inode_blk_shift(pi);
 
 	/* Clearing the datablock inode */
 	pmfs_clear_datablock_inode(sb);
 
-	pmfs_free_inode_subtree(sb, root, height, btype, isize);
+	pmfs_free_inode_subtree(sb, root, height, btype, last_blocknr);
 	
 	return true;
 }
