@@ -524,7 +524,6 @@ static inline void set_default_opts(struct pmfs_sb_info *sbi)
 
 static void pmfs_root_check(struct super_block *sb, struct pmfs_inode *root_pi)
 {
-	pmfs_memunlock_inode(sb, root_pi);
 /*
  *      if (root_pi->i_d.d_next) {
  *              pmfs_warn("root->next not NULL, trying to fix\n");
@@ -532,16 +531,13 @@ static void pmfs_root_check(struct super_block *sb, struct pmfs_inode *root_pi)
  *      }
  */
 	if (!S_ISDIR(le16_to_cpu(root_pi->i_mode)))
-		pmfs_warn("root is not a directory, trying to fix\n");
+		pmfs_warn("root is not a directory!\n");
 #if 0
 	if (pmfs_calc_checksum((u8 *)root_pi, PMFS_INODE_SIZE)) {
 		pmfs_dbg("checksum error in root inode, trying to fix\n");
 		goto fail3;
 	}
 #endif
-	root_pi->i_mode = cpu_to_le16(S_IRWXUGO | S_ISVTX | S_IFDIR);
-	pmfs_memlock_inode(sb, root_pi);
-	pmfs_flush_buffer(&root_pi->i_mode, sizeof(root_pi->i_mode), false);
 }
 
 int pmfs_check_integrity(struct super_block *sb,
