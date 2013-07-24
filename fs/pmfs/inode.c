@@ -1023,11 +1023,6 @@ void pmfs_evict_inode(struct inode *inode)
 		height = pi->height;
 		btype = pi->i_blk_type;
 
-		/* first free the inode */
-		err = pmfs_free_inode(inode);
-		if (err)
-			goto out;
-		/* then free the blocks from the inode's b-tree */
 		if (pi->i_flags & cpu_to_le32(PMFS_EOFBLOCKS_FL)) {
 			last_blocknr = (1UL << (pi->height * META_BLK_SHIFT))
 			    - 1;
@@ -1040,6 +1035,14 @@ void pmfs_evict_inode(struct inode *inode)
 			last_blocknr = pmfs_sparse_last_blocknr(pi->height,
 				last_blocknr);
 		}
+
+		/* first free the inode */
+		err = pmfs_free_inode(inode);
+		if (err)
+			goto out;
+		pi = NULL; /* we no longer own the pmfs_inode */
+
+		/* then free the blocks from the inode's b-tree */
 		pmfs_free_inode_subtree(sb, root, height, btype, last_blocknr);
 		inode->i_mtime = inode->i_ctime = CURRENT_TIME_SEC;
 		inode->i_size = 0;
