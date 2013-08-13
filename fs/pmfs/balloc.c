@@ -41,8 +41,18 @@ void pmfs_init_blockmap(struct super_block *sb, unsigned long init_used_size)
 	list_add(&blknode->link, &sbi->block_inuse_head);
 }
 
-void pmfs_free_block(struct super_block *sb, unsigned long blocknr,
-		      unsigned short btype)
+static struct pmfs_blocknode *pmfs_next_blocknode(struct pmfs_blocknode *i,
+						  struct list_head *head)
+{
+	if (list_is_last(&i->link, head))
+		return NULL;
+	return list_first_entry(&i->link, typeof(*i), link);
+}
+
+/* Caller must hold the super_block lock.  If start_hint is provided, it is
+ * only valid until the caller releases the super_block lock. */
+void __pmfs_free_block(struct super_block *sb, unsigned long blocknr,
+		      unsigned short btype, struct pmfs_blocknode **start_hint)
 {
 	struct pmfs_sb_info *sbi = PMFS_SB(sb);
 	struct list_head *head = &(sbi->block_inuse_head);
@@ -57,10 +67,15 @@ void pmfs_free_block(struct super_block *sb, unsigned long blocknr,
 	new_block_low = blocknr;
 	new_block_high = blocknr + num_blocks - 1;
 
-	mutex_lock(&sbi->s_lock);
+	BUG_ON(list_empty(head));
 
-	/* Traverese each blocknode entry */
-	list_for_each_entry(i, head, link) {
+	if (start_hint && *start_hint &&
+	    new_block_low >= (*start_hint)->block_low)
+		i = *start_hint;
+	else
+		i = list_first_entry(head, typeof(*i), link);
+
+	list_for_each_entry_from(i, head, link) {
 
 		if (new_block_low > i->block_high) {
 			/* skip to next blocknode */
@@ -70,25 +85,31 @@ void pmfs_free_block(struct super_block *sb, unsigned long blocknr,
 		if ((new_block_low == i->block_low) &&
 			(new_block_high == i->block_high)) {
 			/* fits entire datablock */
+			if (start_hint)
+				*start_hint = pmfs_next_blocknode(i, head);
 			list_del(&i->link);
 			free_blocknode = i;
 			sbi->num_blocknode_allocated--;
 			sbi->num_free_blocks += num_blocks;
-			break;
+			goto block_found;
 		}
 		if ((new_block_low == i->block_low) &&
 			(new_block_high < i->block_high)) {
 			/* Aligns left */
 			i->block_low = new_block_high + 1;
 			sbi->num_free_blocks += num_blocks;
-			break;
+			if (start_hint)
+				*start_hint = i;
+			goto block_found;
 		}
 		if ((new_block_low > i->block_low) && 
 			(new_block_high == i->block_high)) {
 			/* Aligns right */
 			i->block_high = new_block_low - 1;
 			sbi->num_free_blocks += num_blocks;
-			break;
+			if (start_hint)
+				*start_hint = pmfs_next_blocknode(i, head);
+			goto block_found;
 		}
 		if ((new_block_low > i->block_low) &&
 			(new_block_high < i->block_high)) {
@@ -97,18 +118,22 @@ void pmfs_free_block(struct super_block *sb, unsigned long blocknr,
 			PMFS_ASSERT(curr_node);
 			if (curr_node == NULL) {
 				/* returning without freeing the block*/
-				break;
+				goto block_found;
 			}
 			curr_node->block_low = new_block_high + 1;
 			curr_node->block_high = i->block_high;
 			i->block_high = new_block_low - 1;
 			list_add(&curr_node->link, &i->link);
 			sbi->num_free_blocks += num_blocks;
-			break;
+			if (start_hint)
+				*start_hint = curr_node;
+			goto block_found;
 		}
 	}
 
-	mutex_unlock(&sbi->s_lock);
+	pmfs_error_mng(sb, "Unable to free block %ld\n", blocknr);
+
+block_found:
 
 	if (free_blocknode)
 		__pmfs_free_blocknode(free_blocknode);
@@ -116,6 +141,14 @@ void pmfs_free_block(struct super_block *sb, unsigned long blocknr,
 	return;
 }
 
+void pmfs_free_block(struct super_block *sb, unsigned long blocknr,
+		      unsigned short btype)
+{
+	struct pmfs_sb_info *sbi = PMFS_SB(sb);
+	mutex_lock(&sbi->s_lock);
+	__pmfs_free_block(sb, blocknr, btype, NULL);
+	mutex_unlock(&sbi->s_lock);
+}
 
 int pmfs_new_block(struct super_block *sb, unsigned long *blocknr,
 	unsigned short btype, int zero)

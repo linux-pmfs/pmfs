@@ -251,7 +251,8 @@ static int recursive_truncate_blocks(struct super_block *sb, u64 block,
 	u64 *node;
 	unsigned int freed = 0, bzero;
 	int start, end;
-	bool mpty, all_range_freed = true;;
+	bool mpty, all_range_freed = true;
+	struct pmfs_sb_info *sbi = PMFS_SB(sb);
 
 	node = pmfs_get_block(sb, le64_to_cpu(block));
 
@@ -261,15 +262,18 @@ static int recursive_truncate_blocks(struct super_block *sb, u64 block,
 	end = last_index = last_blocknr >> node_bits;
 
 	if (height == 1) {
+		struct pmfs_blocknode *start_hint = NULL;
+		mutex_lock(&sbi->s_lock);
 		for (i = first_index; i <= last_index; i++) {
 			if (unlikely(!node[i]))
 				continue;
 			/* Freeing the data block */
 			blocknr = pmfs_get_blocknr(sb, le64_to_cpu(node[i]),
 				    btype);
-			pmfs_free_block(sb, blocknr, btype);
+			__pmfs_free_block(sb, blocknr, btype, &start_hint);
 			freed++;
 		}
+		mutex_unlock(&sbi->s_lock);
 	} else {
 		for (i = first_index; i <= last_index; i++) {
 			if (unlikely(!node[i]))

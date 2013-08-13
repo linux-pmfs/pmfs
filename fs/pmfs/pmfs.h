@@ -118,6 +118,8 @@ extern void pmfs_init_blockmap(struct super_block *sb,
 		unsigned long init_used_size);
 extern void pmfs_free_block(struct super_block *sb, unsigned long blocknr,
 	unsigned short btype);
+extern void __pmfs_free_block(struct super_block *sb, unsigned long blocknr,
+	unsigned short btype, struct pmfs_blocknode **start_hint);
 extern int pmfs_new_block(struct super_block *sb, unsigned long *blocknr,
 	unsigned short btype, int zero);
 extern unsigned long pmfs_count_free_blocks(struct super_block *sb);
