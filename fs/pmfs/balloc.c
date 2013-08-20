@@ -168,7 +168,6 @@ int pmfs_new_block(struct super_block *sb, unsigned long *blocknr,
 
 	mutex_lock(&sbi->s_lock);
 
-	/* Traverese each blocknode entry */
 	list_for_each_entry(i, head, link) {
 		if (i->link.next == head) {
 			next_i = NULL;
@@ -189,7 +188,7 @@ int pmfs_new_block(struct super_block *sb, unsigned long *blocknr,
 		if ((new_block_low == (i->block_high + 1)) &&
 			(new_block_high == (next_block_low - 1)))
 		{
-			/* Fill the gap completly */
+			/* Fill the gap completely */
 			if (next_i) {
 				i->block_high = next_i->block_high;
 				list_del(&next_i->link);

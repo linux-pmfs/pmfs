@@ -325,7 +325,6 @@ static int pmfs_alloc_insert_blocknode_map(struct super_block *sb,
 	new_block_high = high;
 	num_blocks = high - low + 1;
 
-	/* Traverese each blocknode entry */
 	list_for_each_entry(i, head, link) {
 		if (i->link.next == head) {
 			next_i = NULL;
@@ -344,7 +343,7 @@ static int pmfs_alloc_insert_blocknode_map(struct super_block *sb,
 		if ((new_block_low == (i->block_high + 1)) &&
 			(new_block_high == (next_block_low - 1)))
 		{
-			/* Fill the gap completly */
+			/* Fill the gap completely */
 			if (next_i) {
 				i->block_high = next_i->block_high;
 				list_del(&next_i->link);

@@ -121,9 +121,9 @@ Current Limitations
 be reserved by using the memmap= option or using BIOS ACPI tables.
 
 * Because of multiple blocksize support, PMFS supports multiple max file
-sizes. For example, if the file's block size is 4KB, the file can grow upto
-512 GB in size, if blocksize is 2MB, file can grow upto 256 TB, and if the
-blocksize is 1GB, the file can grow upto 128 PB.
+sizes. For example, if the file's block size is 4KB, the file can grow up to
+512 GB in size, if blocksize is 2MB, file can grow up to 256 TB, and if the
+blocksize is 1GB, the file can grow up to 128 PB.
 
 * PMFS does not currently support extended attributes.
 

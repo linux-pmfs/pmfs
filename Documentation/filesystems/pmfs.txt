@@ -121,9 +121,9 @@ a) PMFS uses a memory region not used by the kernel. Hence the memory needs to
 be reserved by using the memmap= option or using BIOS ACPI tables.
 
 b) Because of multiple blocksize support, PMFS supports multiple max file
-sizes. For example, if the file's block size is 4KB, the file can grow upto
-512 GB in size, if blocksize is 2MB, file can grow upto 256 TB, and if the
-blocksize is 1GB, the file can grow upto 128 PB.
+sizes. For example, if the file's block size is 4KB, the file can grow up to
+512 GB in size, if blocksize is 2MB, file can grow up to 256 TB, and if the
+blocksize is 1GB, the file can grow up to 128 PB.
 
 c) PMFS does not currently support extended attributes.
 

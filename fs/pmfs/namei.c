@@ -477,7 +477,7 @@ static int pmfs_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
 	inode->i_fop = &pmfs_dir_operations;
 	inode->i_mapping->a_ops = &pmfs_aops_xip;
 
-	/* since this is a new inode so we dont need to include this
+	/* since this is a new inode so we don't need to include this
 	 * pmfs_alloc_blocks in the transaction
 	 */
 	err = pmfs_alloc_blocks(NULL, inode, 0, 1, false);

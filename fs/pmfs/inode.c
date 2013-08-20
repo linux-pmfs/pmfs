@@ -188,7 +188,7 @@ out:
 		return -ENXIO;
 
 	if (data_found && !hole_found) {
-		/* Searching data but we are alredy into them */
+		/* Searching data but we are already into them */
 		if (hole)
 			/* Searching hole but only data found, go to the end */
 			*offset = inode->i_size;
@@ -215,9 +215,9 @@ out:
 	return 0;
 }
 
-/* examine the meta-data block node upto the end_idx for any non-null
+/* examine the meta-data block node up to the end_idx for any non-null
  * pointers. if found return false, else return true.
- * requied to determine if a meta-data block contains no pointers and hence
+ * required to determine if a meta-data block contains no pointers and hence
  * can be freed.
  */
 static inline bool is_empty_meta_block(u64 *node, unsigned int start_idx,
@@ -489,7 +489,8 @@ static void __pmfs_truncate_blocks(struct inode *inode, loff_t start,
 		}
 	}
 	/* if we are called during mount, a power/system failure had happened.
-	 * Dont trust inode->i_blocks; recalculate it by rescanning the inode */
+	 * Don't trust inode->i_blocks; recalculate it by rescanning the inode
+	 */
 	if (pmfs_is_mounting(sb))
 		inode->i_blocks = pmfs_inode_count_iblocks(sb, pi, root);
 	else
@@ -706,7 +707,6 @@ int __pmfs_alloc_blocks(pmfs_transaction_t *trans, struct super_block *sb,
 			}
 			root = cpu_to_le64(pmfs_get_block_off(sb, blocknr,
 					   pi->i_blk_type));
-			/* TODO: use RTM for in-place atomic update */
 			pmfs_memunlock_inode(sb, pi);
 			pi->root = root;
 			pi->height = height;
@@ -933,7 +933,6 @@ static int pmfs_free_inode(struct inode *inode)
 
 	pi = pmfs_get_inode(sb, inode->i_ino);
 
-	/* This transaction can be avoided if using RTM */
 	trans = pmfs_new_transaction(sb, MAX_INODE_LENTRIES);
 	if (IS_ERR(trans)) {
 		err = PTR_ERR(trans);
@@ -942,7 +941,6 @@ static int pmfs_free_inode(struct inode *inode)
 
 	pmfs_add_logentry(sb, trans, pi, MAX_DATA_PER_LENTRY, LE_DATA);
 
-	/* TODO: use RTM to write the below cacheline atomically */
 	pmfs_memunlock_inode(sb, pi);
 	pi->root = 0;
 	/* pi->i_links_count = 0;
@@ -1366,7 +1364,7 @@ out:
  * when VFS calls evict_inode. If a power failure happens before evict_inode,
  * the inode is freed during the next mount when we recover the truncate list
  * 2) When truncating a file (reducing the file size and freeing the blocks),
- * we dont want to return the freed blocks to the free list until the whole
+ * we don't want to return the freed blocks to the free list until the whole
  * truncate operation is complete. So we add the inode to the truncate list with
  * the specified truncate_size. Now we can return freed blocks to the free list
  * even before the transaction is complete. Because if a power failure happens

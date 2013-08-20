@@ -164,7 +164,7 @@ typedef struct pmfs_journal {
  */
 struct pmfs_super_block {
 	/* static fields. they never change after file system creation.
-	 * checksum only validates upto s_start_dynamic field below */
+	 * checksum only validates up to s_start_dynamic field below */
 	__le16		s_sum;              /* checksum of this sb */
 	__le16		s_magic;            /* magic signature */
 	__le32		s_blocksize;        /* blocksize in bytes */

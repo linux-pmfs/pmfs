@@ -113,7 +113,7 @@ __pmfs_xip_file_write(struct address_space *mapping, const char __user *buf,
 }
 
 /* optimized path for file write that doesn't require a transaction. In this
- * path we dont need to allocate any new data blocks. So the only meta-data
+ * path we don't need to allocate any new data blocks. So the only meta-data
  * modified in path is inode's i_size, i_ctime, and i_mtime fields */
 static ssize_t pmfs_file_write_fast(struct super_block *sb, struct inode *inode,
 	struct pmfs_inode *pi, const char __user *buf, size_t count, loff_t pos,

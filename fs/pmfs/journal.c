@@ -536,7 +536,7 @@ again:
 	tail = tail + req_size;
 	/* journal wraparound because of this transaction allocation.
 	 * start the transaction from the beginning of the journal so
-	 * that we dont have any wraparound within a transaction */
+	 * that we don't have any wraparound within a transaction */
 	pmfs_memunlock_range(sb, journal, sizeof(*journal));
 	if (tail >= sbi->jsize) {
 		volatile u64 *ptr;
@@ -671,7 +671,7 @@ int pmfs_add_logentry(struct super_block *sb,
 			pmfs_memlock_range(sb, le, sizeof(*le) * num_les);
 			return 0;
 		}
-		/* put a compile time barrier so that compiler doesnt reorder
+		/* put a compile time barrier so that compiler doesn't reorder
 		 * the writes to the log entry */
 		barrier();
 

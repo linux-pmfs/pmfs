@@ -80,7 +80,7 @@ extern unsigned int pmfs_dbgmask;
 #define test_opt(sb, opt)       (PMFS_SB(sb)->s_mount_opt & PMFS_MOUNT_ ## opt)
 
 #define PMFS_LARGE_INODE_TABLE_SIZE    (0x200000)
-/* PMFS size threashold for using 2M blocks for inode table */
+/* PMFS size threshold for using 2M blocks for inode table */
 #define PMFS_LARGE_INODE_TABLE_THREASHOLD    (0x20000000)
 /*
  * pmfs inode flags
@@ -206,10 +206,10 @@ static inline void pmfs_flush_buffer(void *buf, uint32_t len, bool fence)
 	len = len + ((unsigned long)(buf) & (CACHELINE_SIZE - 1));
 	for (i = 0; i < len; i += CACHELINE_SIZE)
 		asm volatile ("clflush %0\n" : "+m" (*(char *)(buf+i)));
-	/* Do a fence only if asked. We often don't need to do a fence immidiately
-	 * after clflush because even if we get context switched between clflush
-	 * and subsequent fence, the context switch operation provides implicit
-	 * fence. */
+	/* Do a fence only if asked. We often don't need to do a fence
+	 * immediately after clflush because even if we get context switched
+	 * between clflush and subsequent fence, the context switch operation
+	 * provides implicit fence. */
 	if (fence)
 		asm volatile ("sfence\n" : : );
 }
@@ -311,7 +311,7 @@ static inline void *pmfs_get_block(struct super_block *sb, u64 block)
 	return block ? ((void *)ps + block) : NULL;
 }
 
-/* uses CPU instructions to atomically write upto 8 bytes */
+/* uses CPU instructions to atomically write up to 8 bytes */
 static inline void pmfs_memcpy_atomic (void *dst, const void *src, u8 size)
 {
 	switch (size) {
