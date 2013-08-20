@@ -389,7 +389,6 @@ update_root_and_height:
 	 * 16 bytes atomically. Confirm if it is really true. */
 	cmpxchg_double_local((u64 *)pi, &pi->root, *(u64 *)pi, pi->root,
 		*(u64 *)b, newroot);
-	return;
 }
 
 static unsigned long pmfs_inode_count_iblocks_recursive(struct super_block *sb,
@@ -515,7 +514,6 @@ end_truncate_blocks:
 	pi->i_ctime = cpu_to_le32(inode->i_ctime.tv_sec);
 	pmfs_memlock_inode(sb, pi);
 	pmfs_flush_buffer(pi, 1, false);
-	return;
 }
 
 
@@ -907,8 +905,6 @@ static void pmfs_update_inode(struct inode *inode, struct pmfs_inode *pi)
 		pi->dev.rdev = cpu_to_le32(inode->i_rdev);
 
 	pmfs_memlock_inode(inode->i_sb, pi);
-
-	return;
 }
 
 /*
@@ -1308,7 +1304,6 @@ static void pmfs_block_truncate_page(struct inode *inode, loff_t newsize)
 	memset(bp + offset, 0, length);
 	pmfs_memlock_block(sb, bp);
 	pmfs_flush_buffer(bp + offset, length, false);
-	return;
 }
 
 void pmfs_truncate_del(struct inode *inode)
@@ -1442,7 +1437,6 @@ void pmfs_setsize(struct inode *inode, loff_t newsize)
 		PERSISTENT_MARK();
 		PERSISTENT_BARRIER();
 	}
-	return;
 }
 
 int pmfs_getattr(struct vfsmount *mnt, struct dentry *dentry,

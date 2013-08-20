@@ -615,7 +615,6 @@ static inline void pmfs_commit_logentry(struct super_block *sb,
 		le->gen_id = cpu_to_le16(trans->gen_id);
 		pmfs_flush_buffer(le, LOGENTRY_SIZE, true);
 	}
-	return;
 }
 
 int pmfs_add_logentry(struct super_block *sb,

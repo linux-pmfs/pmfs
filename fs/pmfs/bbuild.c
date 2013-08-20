@@ -73,8 +73,6 @@ static void pmfs_init_blockmap_from_inode(struct super_block *sb)
 		blknode->block_high = le64_to_cpu(p[index].block_high);
 		list_add_tail(&blknode->link, &sbi->block_inuse_head);
 	}
-
-	return;
 }
 
 static bool pmfs_can_skip_full_scan(struct super_block *sb)

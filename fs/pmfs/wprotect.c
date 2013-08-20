@@ -28,7 +28,6 @@ static inline void wprotect_disable(void)
 	cr0_val = read_cr0();
 	cr0_val &= (~X86_CR0_WP);
 	write_cr0(cr0_val);
-	return;
 }
 
 static inline void wprotect_enable(void)
@@ -38,7 +37,6 @@ static inline void wprotect_enable(void)
 	cr0_val = read_cr0();
 	cr0_val |= X86_CR0_WP;
 	write_cr0(cr0_val);
-	return;
 }
 
 /* FIXME: Use PAGE RW Bit */

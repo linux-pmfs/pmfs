@@ -137,8 +137,6 @@ block_found:
 
 	if (free_blocknode)
 		__pmfs_free_blocknode(free_blocknode);
-		
-	return;
 }
 
 void pmfs_free_block(struct super_block *sb, unsigned long blocknr,

@@ -1205,7 +1205,6 @@ static void __exit exit_pmfs_fs(void)
 	destroy_inodecache();
 	destroy_blocknode_cache();
 	destroy_transaction_cache();
-	return;
 }
 
 MODULE_AUTHOR("Intel Corporation <linux-pmfs@intel.com>");
