@@ -252,8 +252,7 @@ ssize_t pmfs_xip_file_write(struct file *filp, const char __user *buf,
 		if (pmfs_find_data_block(inode, start_blk) == 0)
 		    new_sblk = true;
 	}
-	if (((count + offset - 1) >> pmfs_inode_blk_shift(pi)) != 0 &&
-			((pos + count) & (pmfs_inode_blk_size(pi) - 1)) != 0) {
+	if (((pos + count) & (pmfs_inode_blk_size(pi) - 1)) != 0) {
 		if (pmfs_find_data_block(inode, start_blk + num_blocks - 1)
 			== 0)
 		    new_eblk = true;
