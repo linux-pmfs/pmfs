@@ -484,3 +484,47 @@ xip_truncate_page(struct address_space *mapping, loff_t from)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(xip_truncate_page);
+
+static ssize_t do_xip_file_aio(int rw, struct kiocb *iocb,
+		const struct iovec *iov, unsigned long nr_segs, loff_t pos)
+{
+	struct file *filp = iocb->ki_filp;
+	struct address_space *mapping = filp->f_mapping;
+	loff_t offset = pos;
+	int ret = 0;
+	unsigned long seg;
+
+	if (filp->f_flags & O_DIRECT)
+		ret = mapping->a_ops->direct_IO(rw, iocb, iov,
+					pos, nr_segs);
+	else {
+		/* FIXME: Add checking for grow/out of bounds IO */
+		for (seg = 0; seg < nr_segs; seg++) {
+			const struct iovec *iv = &iov[seg];
+			if (rw == READ)
+				ret = filp->f_op->read(filp, iv->iov_base,
+						iv->iov_len, &offset);
+			else if (rw == WRITE)
+				ret = filp->f_op->write(filp, iv->iov_base,
+						iv->iov_len, &offset);
+			if (ret <= 0)
+				goto err;
+		}
+	}
+err:
+	return ret;
+}
+
+ssize_t xip_file_aio_read(struct kiocb *iocb, const struct iovec *iov,
+				unsigned long nr_segs, loff_t pos)
+{
+	return do_xip_file_aio(READ, iocb, iov, nr_segs, pos);
+}
+EXPORT_SYMBOL_GPL(xip_file_aio_read);
+
+ssize_t xip_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
+				unsigned long nr_segs, loff_t pos)
+{
+	return do_xip_file_aio(WRITE, iocb, iov, nr_segs, pos);
+}
+EXPORT_SYMBOL_GPL(xip_file_aio_write);
