@@ -1587,7 +1587,44 @@ void pmfs_get_inode_flags(struct inode *inode, struct pmfs_inode *pi)
 	pi->i_flags = cpu_to_le32(pmfs_flags);
 }
 
+static ssize_t pmfs_direct_IO(int rw, struct kiocb *iocb,
+	const struct iovec *iov, loff_t offset, unsigned long nr_segs)
+{
+	struct file *filp = iocb->ki_filp;
+	struct inode *inode = filp->f_mapping->host;
+	loff_t end = offset;
+	ssize_t err = -EINVAL;
+	unsigned long seg;
+
+	for (seg = 0; seg < nr_segs; seg++)
+		end += iov[seg].iov_len;
+
+	if ((rw == WRITE) && end > i_size_read(inode)) {
+		/* FIXME: Do we need to check for out of bounds IO for R/W */
+		printk(KERN_ERR "pmfs: needs to grow (size = %lld)\n", end);
+		return err;
+	}
+
+	for (seg = 0; seg < nr_segs; seg++) {
+		const struct iovec *iv = &iov[seg];
+		if (rw == READ)
+			err = pmfs_xip_file_read(filp, iv->iov_base,
+					iv->iov_len, &offset);
+		else if (rw == WRITE)
+			err = pmfs_xip_file_write(filp, iv->iov_base,
+					iv->iov_len, &offset);
+		if (err <= 0)
+			goto err;
+	}
+	if (offset != end)
+		printk(KERN_ERR "pmfs: direct_IO: end = %lld"
+			"but offset = %lld\n", end, offset);
+err:
+	return err;
+}
+
 const struct address_space_operations pmfs_aops_xip = {
 	.get_xip_mem		= pmfs_get_xip_mem,
+	.direct_IO		= pmfs_direct_IO,
 	/*.xip_mem_protect	= pmfs_xip_mem_protect,*/
 };
