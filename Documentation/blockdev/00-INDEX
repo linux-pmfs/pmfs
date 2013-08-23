@@ -16,5 +16,3 @@ paride.txt
 	- information about the parallel port IDE subsystem.
 ramdisk.txt
 	- short guide on how to set up and use the RAM disk.
-pmbd.txt
-	- information about Persistent Memory Block Driver.

@@ -540,15 +540,5 @@ config BLK_DEV_RSXX
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called rsxx.
-	  
-config BLK_DEV_PMBD
-	tristate "Persistent Memory Block Driver"
-	depends on m
-
-	default n
-	help
-	  Say M here if you want include the Persistent Memory Block Driver.
-	  
-	  If unsure, say N.
 
 endif # BLK_DEV
