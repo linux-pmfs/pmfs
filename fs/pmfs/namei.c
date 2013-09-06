@@ -677,8 +677,7 @@ static int pmfs_rename(struct inode *old_dir,
 	trans = pmfs_new_transaction(sb, MAX_INODE_LENTRIES * 4 +
 			MAX_DIRENTRY_LENTRIES * 2);
 	if (IS_ERR(trans)) {
-		err = PTR_ERR(trans);
-		goto out;
+		return PTR_ERR(trans);
 	}
 
 	if (new_inode) {
