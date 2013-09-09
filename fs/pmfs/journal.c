@@ -558,13 +558,13 @@ again:
 		journal->tail = cpu_to_le32(tail);
 		pmfs_memlock_range(sb, journal, sizeof(*journal));
 	}
+	pmfs_flush_buffer(&journal->tail, sizeof(u64), false);
 	mutex_unlock(&sbi->journal_mutex);
 
 	avail_size = avail_size - req_size;
 	/* wake up the log cleaner if required */
 	if ((sbi->jsize - avail_size) > (sbi->jsize >> 3))
 		wakeup_log_cleaner(sbi);
-	pmfs_flush_buffer(&journal->tail, sizeof(u64), false);
 
 	pmfs_dbg_trans("new transaction tid %d nle %d avl sz %x sa %llx\n",
 		trans->transaction_id, max_log_entries, avail_size, base);
