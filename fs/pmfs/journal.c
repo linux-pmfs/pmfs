@@ -320,7 +320,7 @@ static void pmfs_clean_journal(struct super_block *sb, bool unmount)
 	uint32_t head = le32_to_cpu(journal->head);
 	uint32_t new_head, tail;
 	uint16_t gen_id;
-	volatile u64 *ptr_tail_genid = (volatile u64 *)&journal->tail;
+	volatile __le64 *ptr_tail_genid = (volatile __le64 *)&journal->tail;
 	u64 tail_genid;
 	pmfs_logentry_t *le;
 
@@ -329,9 +329,9 @@ static void pmfs_clean_journal(struct super_block *sb, bool unmount)
 	 * to write to journal's tail and gen_id atomically, we thought we
 	 * should use volatile to read them simultaneously and avoid locking
 	 * them. */
-	tail_genid = *ptr_tail_genid;
-	tail = le32_to_cpu(tail_genid & 0xFFFFFFFF);
-	gen_id = le16_to_cpu((tail_genid >> 32) & 0xFFFF);
+	tail_genid = le64_to_cpu(*ptr_tail_genid);
+	tail = tail_genid & 0xFFFFFFFF;
+	gen_id = (tail_genid >> 32) & 0xFFFF;
 
 	/* journal wraparound happened. so head points to prev generation id */
 	if (tail < head)
@@ -539,16 +539,12 @@ again:
 	 * that we don't have any wraparound within a transaction */
 	pmfs_memunlock_range(sb, journal, sizeof(*journal));
 	if (tail >= sbi->jsize) {
-		volatile u64 *ptr;
+		u64 *ptr;
 		tail = 0;
-		/* write the gen_id and tail atomically. Use of volatile is
-		 * normally prohibited in kernel code, but it is required here
-		 * because we want to write atomically against power failures
-		 * and locking can't provide that. */
-		ptr = (volatile u64 *)&journal->tail;
+		ptr = (u64 *)&journal->tail;
 		/* writing 8-bytes atomically setting tail to 0 */
-		set_64bit(ptr, (u64)cpu_to_le16(next_gen_id(le16_to_cpu(
-				journal->gen_id))) << 32);
+		set_64bit(ptr, (__force u64)cpu_to_le64((u64)next_gen_id(
+					le16_to_cpu(journal->gen_id)) << 32));
 		pmfs_memlock_range(sb, journal, sizeof(*journal));
 		pmfs_dbg_trans("journal wrapped. tail %x gid %d cur tid %d\n",
 			le32_to_cpu(journal->tail),le16_to_cpu(journal->gen_id),
