@@ -231,20 +231,19 @@ void pmfs_save_blocknode_mappings(struct super_block *sb)
 
 static void pmfs_inode_crawl_recursive(struct super_block *sb,
 				struct scan_bitmap *bm, unsigned long block,
-				u32 height, u32 btype)
+				u32 height, u8 btype)
 {
-	u64 *node;
+	__le64 *node;
 	unsigned int i;
 
 	if (height == 0) {
 		/* This is the data block */
-		if (btype == cpu_to_le16(PMFS_BLOCK_TYPE_4K)) {
+		if (btype == PMFS_BLOCK_TYPE_4K) {
 			set_bit(block >> PAGE_SHIFT, bm->bitmap_4k);
-		} else if (btype == cpu_to_le16(PMFS_BLOCK_TYPE_2M)) {
+		} else if (btype == PMFS_BLOCK_TYPE_2M) {
 			set_bit(block >> PAGE_SHIFT_2M, bm->bitmap_2M);
 		} else {
 			set_bit(block >> PAGE_SHIFT_1G, bm->bitmap_1G);
-			
 		}
 		return;
 	}
