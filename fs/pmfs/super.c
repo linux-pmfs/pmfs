@@ -930,7 +930,7 @@ restore_opt:
 	return ret;
 }
 
-void pmfs_put_super(struct super_block *sb)
+static void pmfs_put_super(struct super_block *sb)
 {
 	struct pmfs_sb_info *sbi = PMFS_SB(sb);
 	struct pmfs_super_block *ps = pmfs_get_super(sb);

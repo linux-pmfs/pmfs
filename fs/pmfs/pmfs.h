@@ -152,14 +152,10 @@ extern void pmfs_put_inode(struct inode *inode);
 extern void pmfs_evict_inode(struct inode *inode);
 extern struct inode *pmfs_new_inode(pmfs_transaction_t *trans,
 	struct inode *dir, umode_t mode, const struct qstr *qstr);
-extern inline void pmfs_update_isize(struct inode *inode,
-		struct pmfs_inode *pi);
-extern inline void pmfs_update_nlink(struct inode *inode,
-		struct pmfs_inode *pi);
-extern inline void pmfs_update_time(struct inode *inode,
-		struct pmfs_inode *pi);
-extern int pmfs_write_inode(struct inode *inode,
-	struct writeback_control *wbc);
+extern void pmfs_update_isize(struct inode *inode, struct pmfs_inode *pi);
+extern void pmfs_update_nlink(struct inode *inode, struct pmfs_inode *pi);
+extern void pmfs_update_time(struct inode *inode, struct pmfs_inode *pi);
+extern int pmfs_write_inode(struct inode *inode, struct writeback_control *wbc);
 extern void pmfs_dirty_inode(struct inode *inode, int flags);
 extern int pmfs_notify_change(struct dentry *dentry, struct iattr *attr);
 int pmfs_getattr(struct vfsmount *mnt, struct dentry *dentry, 

@@ -40,7 +40,7 @@ static inline void wprotect_enable(void)
 }
 
 /* FIXME: Use PAGE RW Bit */
-int pmfs_writeable_old(void *vaddr, unsigned long size, int rw)
+static int pmfs_writeable_old(void *vaddr, unsigned long size, int rw)
 {
 	int ret = 0;
 	unsigned long nrpages = size >> PAGE_SHIFT;

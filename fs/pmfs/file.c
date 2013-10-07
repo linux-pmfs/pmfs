@@ -138,7 +138,7 @@ out:
 	return ret;
 }
 
-loff_t pmfs_llseek(struct file *file, loff_t offset, int origin)
+static loff_t pmfs_llseek(struct file *file, loff_t offset, int origin)
 {
 	struct inode *inode = file->f_path.dentry->d_inode;
 	int retval;
@@ -183,7 +183,7 @@ loff_t pmfs_llseek(struct file *file, loff_t offset, int origin)
  * TODO: Check if we can avoid calling pmfs_flush_buffer() for fsync. We use
  * movnti to write data to files, so we may want to avoid doing unnecessary
  * pmfs_flush_buffer() on fsync() */
-int pmfs_fsync(struct file *file, loff_t start, loff_t end, int datasync)
+static int pmfs_fsync(struct file *file, loff_t start, loff_t end, int datasync)
 {
 	/* Sync from start to end[inclusive] */
 	struct address_space *mapping = file->f_mapping;
@@ -262,7 +262,7 @@ extern unsigned long arch_get_unmapped_area_sz(struct file *file,
 	unsigned long addr0, unsigned long len, unsigned long align_size,
 	unsigned long pgoff, unsigned long flags);
 
-unsigned long
+static unsigned long
 pmfs_get_unmapped_area(struct file *file, unsigned long addr,
 			unsigned long len, unsigned long pgoff,
 			unsigned long flags)

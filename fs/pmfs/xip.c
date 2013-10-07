@@ -331,8 +331,7 @@ static int __pmfs_xip_file_fault(struct vm_area_struct *vma,
 	return VM_FAULT_NOPAGE;
 }
 
-extern int
-pmfs_xip_file_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
+static int pmfs_xip_file_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 {
 	int ret = 0;
 
@@ -446,7 +445,7 @@ int pmfs_get_xip_mem(struct address_space *mapping, pgoff_t pgoff, int create,
 	return 0;
 }
 
-unsigned long pmfs_data_block_size(struct vm_area_struct *vma,
+static unsigned long pmfs_data_block_size(struct vm_area_struct *vma,
 				    unsigned long addr, unsigned long pgoff)
 {
 	struct file *file = vma->vm_file;
@@ -611,7 +610,8 @@ out_mutex:
 	return ret;
 }
 
-int pmfs_xip_file_hpage_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
+static int pmfs_xip_file_hpage_fault(struct vm_area_struct *vma,
+							struct vm_fault *vmf)
 {
 	int ret = 0;
 

@@ -80,8 +80,8 @@ typedef struct pmfs_transaction {
 	struct pmfs_transaction *parent;
 } pmfs_transaction_t;
 
-extern inline pmfs_transaction_t *pmfs_alloc_transaction(void);
-extern inline void pmfs_free_transaction(pmfs_transaction_t *trans);
+extern pmfs_transaction_t *pmfs_alloc_transaction(void);
+extern void pmfs_free_transaction(pmfs_transaction_t *trans);
 
 extern int pmfs_journal_soft_init(struct super_block *sb);
 extern int pmfs_journal_hard_init(struct super_block *sb,
@@ -89,7 +89,7 @@ extern int pmfs_journal_hard_init(struct super_block *sb,
 extern int pmfs_journal_uninit(struct super_block *sb);
 extern pmfs_transaction_t *pmfs_new_transaction(struct super_block *sb,
 		int nclines);
-extern inline pmfs_transaction_t *pmfs_current_transaction(void);
+extern pmfs_transaction_t *pmfs_current_transaction(void);
 extern int pmfs_add_logentry(struct super_block *sb,
 		pmfs_transaction_t *trans, void *addr, uint16_t size, u8 type);
 extern int pmfs_commit_transaction(struct super_block *sb,
