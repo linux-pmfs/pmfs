@@ -400,7 +400,9 @@ static inline void pmfs_memcpy_atomic (void *dst, const void *src, u8 size)
 static inline void pmfs_update_time_and_size(struct inode *inode,
 	struct pmfs_inode *pi)
 {
-	uint32_t words[2];
+	__le32 words[2];
+	__le64 new_pi_size = cpu_to_le64(i_size_read(inode));
+
 	/* pi->i_size, pi->i_ctime, and pi->i_mtime need to be atomically updated.
  	* So use cmpxchg16b here. */
 	words[0] = cpu_to_le32(inode->i_ctime.tv_sec);
@@ -408,7 +410,7 @@ static inline void pmfs_update_time_and_size(struct inode *inode,
 	/* TODO: the following function assumes cmpxchg16b instruction writes
  	* 16 bytes atomically. Confirm if it is really true. */
 	cmpxchg_double_local(&pi->i_size, (u64 *)&pi->i_ctime, pi->i_size,
-		*(u64 *)&pi->i_ctime, inode->i_size, *(u64 *)words);
+		*(u64 *)&pi->i_ctime, new_pi_size, *(u64 *)words);
 }
 
 /* assumes the length to be 4-byte aligned */
