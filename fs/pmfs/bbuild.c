@@ -89,14 +89,12 @@ static bool pmfs_can_skip_full_scan(struct super_block *sb)
 	struct pmfs_inode *pi =  pmfs_get_inode(sb, PMFS_BLOCKNODE_IN0);
 	struct pmfs_super_block *super = pmfs_get_super(sb);
 	struct pmfs_sb_info *sbi = PMFS_SB(sb);
-	u64 root;
+	__le64 root;
 	unsigned int height, btype;
 	unsigned long last_blocknr;
 
 	if (!pi->root)
-	{
-		return  false;
-	}
+		return false;
 
 	sbi->num_blocknode_allocated =
 		le64_to_cpu(super->s_num_blocknode_allocated);
@@ -119,7 +117,7 @@ static bool pmfs_can_skip_full_scan(struct super_block *sb)
 	pmfs_clear_datablock_inode(sb);
 
 	pmfs_free_inode_subtree(sb, root, height, btype, last_blocknr);
-	
+
 	return true;
 }
 
@@ -274,7 +272,7 @@ static void pmfs_inode_table_crawl_recursive(struct super_block *sb,
 				struct scan_bitmap *bm, unsigned long block,
 				u32 height, u32 btype)
 {
-	u64 *node;
+	__le64 *node;
 	unsigned int i;
 	struct pmfs_inode *pi;
 	struct pmfs_sb_info *sbi = PMFS_SB(sb);

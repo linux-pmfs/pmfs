@@ -96,12 +96,12 @@ u64 pmfs_find_data_block(struct inode *inode, unsigned long file_blocknr)
  * @hole_found: indicates whether a hole was found
  * hole: whether we are looking for a hole or data
  */
-static int recursive_find_region(struct super_block *sb, unsigned long block,
+static int recursive_find_region(struct super_block *sb, __le64 block,
 	u32 height, unsigned long first_blocknr, unsigned long last_blocknr,
 	int *data_found, int *hole_found, int hole)
 {
 	unsigned int meta_bits = META_BLK_SHIFT;
-	u64 *node;
+	__le64 *node;
 	unsigned long first_blk, last_blk, node_bits, blocks = 0;
 	unsigned int first_index, last_index, i;
 
@@ -220,7 +220,7 @@ out:
  * required to determine if a meta-data block contains no pointers and hence
  * can be freed.
  */
-static inline bool is_empty_meta_block(u64 *node, unsigned int start_idx,
+static inline bool is_empty_meta_block(__le64 *node, unsigned int start_idx,
 	unsigned int end_idx)
 {
 	int i, last_idx = (1 << META_BLK_SHIFT) - 1;
@@ -242,13 +242,13 @@ static inline bool is_empty_meta_block(u64 *node, unsigned int start_idx,
  * last_blocknr: last_blocknr in the specified range
  * end: last byte offset of the range
  */
-static int recursive_truncate_blocks(struct super_block *sb, u64 block,
+static int recursive_truncate_blocks(struct super_block *sb, __le64 block,
 	u32 height, u32 btype, unsigned long first_blocknr,
 	unsigned long last_blocknr, bool *meta_empty)
 {
 	unsigned long blocknr, first_blk, last_blk;
 	unsigned int node_bits, first_index, last_index, i;
-	u64 *node;
+	__le64 *node;
 	unsigned int freed = 0, bzero;
 	int start, end;
 	bool mpty, all_range_freed = true;
@@ -319,7 +319,7 @@ static int recursive_truncate_blocks(struct super_block *sb, u64 block,
 }
 
 unsigned int pmfs_free_inode_subtree(struct super_block *sb,
-		u64 root, u32 height, u32 btype, unsigned long last_blocknr)
+		__le64 root, u32 height, u32 btype, unsigned long last_blocknr)
 {
 	unsigned long first_blocknr;
 	unsigned int freed;
@@ -347,11 +347,11 @@ unsigned int pmfs_free_inode_subtree(struct super_block *sb,
 }
 
 static void pmfs_decrease_btree_height(struct super_block *sb,
-	struct pmfs_inode *pi, unsigned long newsize, u64 newroot)
+	struct pmfs_inode *pi, unsigned long newsize, __le64 newroot)
 {
 	unsigned int height = pi->height, new_height = 0;
 	unsigned long blocknr, last_blocknr;
-	u64 *root;
+	__le64 *root;
 	char b[8];
 
 	if (pi->i_blocks == 0 || newsize == 0) {
@@ -442,7 +442,7 @@ static void __pmfs_truncate_blocks(struct inode *inode, loff_t start,
 	struct super_block *sb = inode->i_sb;
 	struct pmfs_inode *pi = pmfs_get_inode(sb, inode->i_ino);
 	unsigned long first_blocknr, last_blocknr;
-	u64 root;
+	__le64 root;
 	unsigned int freed = 0;
 	unsigned int data_bits = blk_type_to_shift[pi->i_blk_type];
 	unsigned int meta_bits = META_BLK_SHIFT;
@@ -522,7 +522,7 @@ static int pmfs_increase_btree_height(struct super_block *sb,
 		struct pmfs_inode *pi, u32 new_height)
 {
 	u32 height = pi->height;
-	u64 *root, prev_root = pi->root;
+	__le64 *root, prev_root = pi->root;
 	unsigned long blocknr;
 	int errval = 0;
 
@@ -560,13 +560,13 @@ static int pmfs_increase_btree_height(struct super_block *sb,
  * zero: whether to zero-out the allocated block(s)
  */
 static int recursive_alloc_blocks(pmfs_transaction_t *trans,
-	struct super_block *sb, struct pmfs_inode *pi, u64 block, u32 height,
+	struct super_block *sb, struct pmfs_inode *pi, __le64 block, u32 height,
 	unsigned long first_blocknr, unsigned long last_blocknr, bool new_node,
 	bool zero)
 {
 	int i, errval;
 	unsigned int meta_bits = META_BLK_SHIFT, node_bits;
-	u64 *node;
+	__le64 *node;
 	bool journal_saved = 0;
 	unsigned long blocknr, first_blk, last_blk;
 	unsigned int first_index, last_index;
@@ -698,7 +698,7 @@ int __pmfs_alloc_blocks(pmfs_transaction_t *trans, struct super_block *sb,
 
 	if (!pi->root) {
 		if (height == 0) {
-			u64 root;
+			__le64 root;
 			errval = pmfs_new_data_block(sb, pi, &blocknr, zero);
 			if (errval) {
 				pmfs_dbg_verbose("[%s:%d] failed: alloc data"
@@ -1005,7 +1005,7 @@ void pmfs_evict_inode(struct inode *inode)
 {
 	struct super_block *sb = inode->i_sb;
 	struct pmfs_inode *pi = pmfs_get_inode(sb, inode->i_ino);
-	u64 root;
+	__le64 root;
 	unsigned long last_blocknr;
 	unsigned int height, btype;
 	int err = 0;

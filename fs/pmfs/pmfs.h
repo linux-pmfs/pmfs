@@ -134,7 +134,7 @@ extern struct dentry *pmfs_get_parent(struct dentry *child);
 
 /* inode.c */
 extern unsigned int pmfs_free_inode_subtree(struct super_block *sb,
-		u64 root, u32 height, u32 btype, unsigned long last_blocknr);
+		__le64 root, u32 height, u32 btype, unsigned long last_blocknr);
 extern int __pmfs_alloc_blocks(pmfs_transaction_t *trans,
 		struct super_block *sb, struct pmfs_inode *pi,
 		unsigned long file_blocknr, unsigned int num, bool zero);
@@ -239,8 +239,8 @@ static inline int pmfs_calc_checksum(u8 *data, int n)
 }
 
 struct pmfs_blocknode_lowhigh {
-       unsigned long block_low;
-       unsigned long block_high;
+       __le64 block_low;
+       __le64 block_high;
 };
                
 struct pmfs_blocknode {
@@ -374,19 +374,19 @@ static inline void pmfs_memcpy_atomic (void *dst, const void *src, u8 size)
 			break;
 		}
 		case 2: {
-			volatile u16 *daddr = dst;
+			volatile __le16 *daddr = dst;
 			const u16 *saddr = src;
 			*daddr = cpu_to_le16(*saddr);
 			break;
 		}
 		case 4: {
-			volatile u32 *daddr = dst;
+			volatile __le32 *daddr = dst;
 			const u32 *saddr = src;
 			*daddr = cpu_to_le32(*saddr);
 			break;
 		}
 		case 8: {
-			volatile u64 *daddr = dst;
+			volatile __le64 *daddr = dst;
 			const u64 *saddr = src;
 			*daddr = cpu_to_le64(*saddr);
 			break;
@@ -451,7 +451,8 @@ static inline void memset_nt(void *dest, uint32_t dword, size_t length)
 static inline u64 __pmfs_find_data_block(struct super_block *sb,
 		struct pmfs_inode *pi, unsigned long blocknr)
 {
-	u64 *level_ptr, bp = 0;
+	__le64 *level_ptr;
+	u64 bp = 0;
 	u32 height, bit_shift;
 	unsigned int idx;
 
