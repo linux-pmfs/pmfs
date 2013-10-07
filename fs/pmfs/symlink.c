@@ -38,7 +38,7 @@ int pmfs_block_symlink(struct inode *inode, const char *symname, int len)
 	return 0;
 }
 
-static int pmfs_readlink(struct dentry *dentry, char *buffer, int buflen)
+static int pmfs_readlink(struct dentry *dentry, char __user *buffer, int buflen)
 {
 	struct inode *inode = dentry->d_inode;
 	struct super_block *sb = inode->i_sb;
