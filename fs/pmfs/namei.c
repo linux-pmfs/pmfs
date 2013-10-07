@@ -640,7 +640,7 @@ static int pmfs_rmdir(struct inode *dir, struct dentry *dentry)
 
 	pmfs_memunlock_inode(sb, pi);
 	pi->i_links_count = cpu_to_le16(inode->i_nlink);
-	pi->i_ctime = cpu_to_le64(inode->i_ctime.tv_sec);
+	pi->i_ctime = cpu_to_le32(inode->i_ctime.tv_sec);
 	pmfs_memlock_inode(sb, pi);
 
 	/* add the inode to truncate list in case a crash happens before the
