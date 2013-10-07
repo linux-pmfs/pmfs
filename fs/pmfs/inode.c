@@ -1069,7 +1069,8 @@ static int pmfs_increase_inode_table_size(struct super_block *sb)
 	pmfs_add_logentry(sb, trans, pi, MAX_DATA_PER_LENTRY, LE_DATA);
 
 	errval = __pmfs_alloc_blocks(trans, sb, pi,
-			pi->i_size >> sb->s_blocksize_bits, 1, true);
+			le64_to_cpup(&pi->i_size) >> sb->s_blocksize_bits,
+			1, true);
 
 	if (errval == 0) {
 		u64 i_size = le64_to_cpu(pi->i_size);
@@ -1341,7 +1342,7 @@ void pmfs_truncate_del(struct inode *inode)
 		struct pmfs_inode_truncate_item *li_prv = 
 				pmfs_get_truncate_item(sb, i_prv->i_ino);
 		pmfs_memunlock_range(sb, li_prv, sizeof(*li_prv));
-		li_prv->i_next_truncate = ino_next;
+		li_prv->i_next_truncate = cpu_to_le64(ino_next);
 		pmfs_memlock_range(sb, li_prv, sizeof(*li_prv));
 		pmfs_flush_buffer(&li_prv->i_next_truncate,
 			sizeof(li_prv->i_next_truncate), false);
