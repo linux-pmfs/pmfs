@@ -392,32 +392,31 @@ update_root_and_height:
 }
 
 static unsigned long pmfs_inode_count_iblocks_recursive(struct super_block *sb,
-		unsigned long block, u32 height)
+		__le64 block, u32 height)
 {
-	u64 *node;
+	__le64 *node;
 	unsigned int i;
 	unsigned long i_blocks = 0;
 
 	if (height == 0)
 		return 1;
-	node = pmfs_get_block(sb, block);
+	node = pmfs_get_block(sb, le64_to_cpu(block));
 	for (i = 0; i < (1 << META_BLK_SHIFT); i++) {
 		if (node[i] == 0)
 			continue;
-		i_blocks += pmfs_inode_count_iblocks_recursive(sb,
-			le64_to_cpu(node[i]), height - 1);
+		i_blocks += pmfs_inode_count_iblocks_recursive(sb, node[i],
+								height - 1);
 	}
 	return i_blocks;
 }
 
 static inline unsigned long pmfs_inode_count_iblocks (struct super_block *sb,
-	struct pmfs_inode *pi, u64 root)
+	struct pmfs_inode *pi, __le64 root)
 {
 	unsigned long iblocks;
 	if (root == 0)
 		return 0;
-	iblocks = pmfs_inode_count_iblocks_recursive(sb, le64_to_cpu(root),
- 						pi->height);
+	iblocks = pmfs_inode_count_iblocks_recursive(sb, root, pi->height);
 	return (iblocks << (pmfs_inode_blk_shift(pi) - sb->s_blocksize_bits));
 }
 
