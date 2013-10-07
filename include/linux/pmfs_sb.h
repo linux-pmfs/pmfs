@@ -57,14 +57,7 @@ struct pmfs_sb_info {
 	unsigned int	s_inodes_used_count;
 	unsigned int	s_free_inode_hint;
 
-	/* temp bitmap space */
 	unsigned long num_blocknode_allocated;
-	unsigned long bitmap_4k_size;
-	unsigned long bitmap_2M_size;
-	unsigned long bitmap_1G_size;
-	unsigned long *bitmap_4k;
-	unsigned long *bitmap_2M;
-	unsigned long *bitmap_1G;
 
 	/* Journaling related structures */
 	uint32_t    next_transaction_id;

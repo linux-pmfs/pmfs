@@ -24,6 +24,15 @@
 #include <linux/slab.h>
 #include "pmfs.h"
 
+struct scan_bitmap {
+	unsigned long bitmap_4k_size;
+	unsigned long bitmap_2M_size;
+	unsigned long bitmap_1G_size;
+	unsigned long *bitmap_4k;
+	unsigned long *bitmap_2M;
+	unsigned long *bitmap_1G;
+};
+
 static void pmfs_clear_datablock_inode(struct super_block *sb)
 {
 	struct pmfs_inode *pi =  pmfs_get_inode(sb, PMFS_BLOCKNODE_IN0);
@@ -223,47 +232,47 @@ void pmfs_save_blocknode_mappings(struct super_block *sb)
 }
 
 static void pmfs_inode_crawl_recursive(struct super_block *sb,
-                                        unsigned long block, u32 height,
-					u32 btype)
+				struct scan_bitmap *bm, unsigned long block,
+				u32 height, u32 btype)
 {
 	u64 *node;
 	unsigned int i;
-	struct pmfs_sb_info *sbi = PMFS_SB(sb);
-	
+
 	if (height == 0) {
 		/* This is the data block */
 		if (btype == cpu_to_le16(PMFS_BLOCK_TYPE_4K)) {
-			set_bit(block >> PAGE_SHIFT, sbi->bitmap_4k);
+			set_bit(block >> PAGE_SHIFT, bm->bitmap_4k);
 		} else if (btype == cpu_to_le16(PMFS_BLOCK_TYPE_2M)) {
-			set_bit(block >> PAGE_SHIFT_2M, sbi->bitmap_2M);
+			set_bit(block >> PAGE_SHIFT_2M, bm->bitmap_2M);
 		} else {
-			set_bit(block >> PAGE_SHIFT_1G, sbi->bitmap_1G);
+			set_bit(block >> PAGE_SHIFT_1G, bm->bitmap_1G);
 			
 		}
 		return;
 	}
 
 	node = pmfs_get_block(sb, block);
-	set_bit(block >> PAGE_SHIFT, sbi->bitmap_4k);
+	set_bit(block >> PAGE_SHIFT, bm->bitmap_4k);
 	for (i = 0; i < (1 << META_BLK_SHIFT); i++) {
 		if (node[i] == 0)
 			continue;
-		pmfs_inode_crawl_recursive(sb, 
+		pmfs_inode_crawl_recursive(sb, bm,
 			le64_to_cpu(node[i]), height - 1, btype);
 	}
 }
 
 static inline void pmfs_inode_crawl(struct super_block *sb,
-	struct pmfs_inode *pi)
+				struct scan_bitmap *bm, struct pmfs_inode *pi)
 {
 	if (pi->root == 0)
 		return;
-	pmfs_inode_crawl_recursive(sb, le64_to_cpu(pi->root), pi->height,
-		pi->i_blk_type);
+	pmfs_inode_crawl_recursive(sb, bm, le64_to_cpu(pi->root), pi->height,
+					pi->i_blk_type);
 }
 
 static void pmfs_inode_table_crawl_recursive(struct super_block *sb,
-			unsigned long block, u32 height, u32 btype)
+				struct scan_bitmap *bm, unsigned long block,
+				u32 height, u32 btype)
 {
 	u64 *node;
 	unsigned int i;
@@ -275,9 +284,9 @@ static void pmfs_inode_table_crawl_recursive(struct super_block *sb,
 	if (height == 0) {
 		unsigned int inodes_per_block = INODES_PER_BLOCK(btype);
 		if (likely(btype == PMFS_BLOCK_TYPE_2M))
-			set_bit(block >> PAGE_SHIFT_2M, sbi->bitmap_2M);
+			set_bit(block >> PAGE_SHIFT_2M, bm->bitmap_2M);
 		else
-			set_bit(block >> PAGE_SHIFT, sbi->bitmap_4k);
+			set_bit(block >> PAGE_SHIFT, bm->bitmap_4k);
 
 		sbi->s_inodes_count += inodes_per_block;
 		for (i = 0; i < inodes_per_block; i++) {
@@ -290,16 +299,16 @@ static void pmfs_inode_table_crawl_recursive(struct super_block *sb,
 					continue;
 			}
 			sbi->s_inodes_used_count++;
-			pmfs_inode_crawl(sb, pi);
+			pmfs_inode_crawl(sb, bm, pi);
 		}
-		return; 
+		return;
 	}
 
-	set_bit(block >> PAGE_SHIFT , sbi->bitmap_4k);
+	set_bit(block >> PAGE_SHIFT, bm->bitmap_4k);
 	for (i = 0; i < (1 << META_BLK_SHIFT); i++) {
 		if (node[i] == 0)
 			continue;
-		pmfs_inode_table_crawl_recursive(sb, 
+		pmfs_inode_table_crawl_recursive(sb, bm,
 			le64_to_cpu(node[i]), height - 1, btype);
 	}
 }
@@ -440,18 +449,15 @@ static int __pmfs_build_blocknode_map(struct super_block *sb,
 	return 0;
 }
 	
-static int pmfs_build_blocknode_map(struct super_block *sb)
+static void pmfs_build_blocknode_map(struct super_block *sb,
+							struct scan_bitmap *bm)
 {
-	struct pmfs_sb_info *sbi = PMFS_SB(sb);
-	
-	__pmfs_build_blocknode_map(sb, sbi->bitmap_4k, sbi->bitmap_4k_size * 8,
+	__pmfs_build_blocknode_map(sb, bm->bitmap_4k, bm->bitmap_4k_size * 8,
 		PAGE_SHIFT - 12);
-	__pmfs_build_blocknode_map(sb, sbi->bitmap_2M, sbi->bitmap_2M_size * 8,
+	__pmfs_build_blocknode_map(sb, bm->bitmap_2M, bm->bitmap_2M_size * 8,
 		PAGE_SHIFT_2M - 12);
-	__pmfs_build_blocknode_map(sb, sbi->bitmap_1G, sbi->bitmap_1G_size * 8,
+	__pmfs_build_blocknode_map(sb, bm->bitmap_1G, bm->bitmap_1G_size * 8,
 		PAGE_SHIFT_1G - 12);
-
-	return 0;
 }
 
 int pmfs_setup_blocknode_map(struct super_block *sb)
@@ -460,6 +466,7 @@ int pmfs_setup_blocknode_map(struct super_block *sb)
 	struct pmfs_inode *pi = pmfs_get_inode_table(sb);
 	pmfs_journal_t *journal = pmfs_get_journal(sb);
 	struct pmfs_sb_info *sbi = PMFS_SB(sb);
+	struct scan_bitmap bm;
 	unsigned long initsize = le64_to_cpu(super->s_size);
 	bool value = false;
 
@@ -473,23 +480,23 @@ int pmfs_setup_blocknode_map(struct super_block *sb)
 		return 0;
 	}
 
-	sbi->bitmap_4k_size = (initsize >> (PAGE_SHIFT + 0x3)) + 1;
-	sbi->bitmap_2M_size = (initsize >> (PAGE_SHIFT_2M + 0x3)) + 1;
-	sbi->bitmap_1G_size = (initsize >> (PAGE_SHIFT_1G + 0x3)) + 1;
+	bm.bitmap_4k_size = (initsize >> (PAGE_SHIFT + 0x3)) + 1;
+	bm.bitmap_2M_size = (initsize >> (PAGE_SHIFT_2M + 0x3)) + 1;
+	bm.bitmap_1G_size = (initsize >> (PAGE_SHIFT_1G + 0x3)) + 1;
 
 	/* Alloc memory to hold the block alloc bitmap */
-	sbi->bitmap_4k = kzalloc(sbi->bitmap_4k_size, GFP_KERNEL);
-	sbi->bitmap_2M = kzalloc(sbi->bitmap_2M_size, GFP_KERNEL);
-	sbi->bitmap_1G = kzalloc(sbi->bitmap_1G_size, GFP_KERNEL);
-	if (!sbi->bitmap_4k || !sbi->bitmap_2M || !sbi->bitmap_1G) {
+	bm.bitmap_4k = kzalloc(bm.bitmap_4k_size, GFP_KERNEL);
+	bm.bitmap_2M = kzalloc(bm.bitmap_2M_size, GFP_KERNEL);
+	bm.bitmap_1G = kzalloc(bm.bitmap_1G_size, GFP_KERNEL);
+
+	if (!bm.bitmap_4k || !bm.bitmap_2M || !bm.bitmap_1G)
 		goto skip;
-	}
 	
 	/* Clearing the datablock inode */
 	pmfs_clear_datablock_inode(sb);
 
-	pmfs_inode_table_crawl_recursive(sb, le64_to_cpu(pi->root), pi->height,
-		pi->i_blk_type);
+	pmfs_inode_table_crawl_recursive(sb, &bm, le64_to_cpu(pi->root),
+						pi->height, pi->i_blk_type);
 
 	/* Reserving tow inodes - Inode 0 and Inode for datablock */
 	sbi->s_free_inodes_count = sbi->s_inodes_count -  
@@ -502,13 +509,13 @@ int pmfs_setup_blocknode_map(struct super_block *sb)
 	sbi->num_free_blocks = ((unsigned long)(initsize) >> PAGE_SHIFT);
 	pmfs_init_blockmap(sb, le64_to_cpu(journal->base) + sbi->jsize);
 
-	pmfs_build_blocknode_map(sb);
+	pmfs_build_blocknode_map(sb, &bm);
 
 skip:
 	
-	kfree(sbi->bitmap_4k);
-	kfree(sbi->bitmap_2M);
-	kfree(sbi->bitmap_1G);
+	kfree(bm.bitmap_4k);
+	kfree(bm.bitmap_2M);
+	kfree(bm.bitmap_1G);
 
 	return 0;
 }
