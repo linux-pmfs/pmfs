@@ -15,14 +15,13 @@
 #ifndef __PMFS_H
 #define __PMFS_H
 
-#include <linux/buffer_head.h>
 #include <linux/pmfs_def.h>
-#include <linux/pmfs_sb.h>
 #include <linux/crc16.h>
 #include <linux/mutex.h>
+#include <linux/pagemap.h>
 #include <linux/rcupdate.h>
 #include <linux/types.h>
-#include "wprotect.h"
+
 #include "journal.h"
 
 #define PAGE_SHIFT_2M 21
@@ -258,6 +257,63 @@ struct pmfs_inode_vfs {
 	__u32   i_dir_start_lookup;
 	struct list_head i_truncated;
 	struct inode	vfs_inode;
+};
+
+/*
+ * PMFS super-block data in memory
+ */
+struct pmfs_sb_info {
+	/*
+	 * base physical and virtual address of PMFS (which is also
+	 * the pointer to the super block)
+	 */
+	phys_addr_t	phys_addr;
+	void		*virt_addr;
+	struct list_head block_inuse_head;
+	unsigned long	block_start;
+	unsigned long	block_end;
+	unsigned long	num_free_blocks;
+	char		pmfs_backing_file[256];
+	struct mutex 	s_lock;	/* protects the SB's buffer-head */
+
+	/*
+	 * Backing store option:
+	 * 1 = no load, 2 = no store,
+	 * else do both
+	 */
+	unsigned int	pmfs_backing_option;
+
+	/* Mount options */
+	unsigned long	bpi;
+	unsigned long	num_inodes;
+	unsigned long	blocksize;
+	unsigned long	initsize;
+	unsigned long	s_mount_opt;
+	kuid_t		uid;    /* Mount uid for root directory */
+	kgid_t		gid;    /* Mount gid for root directory */
+	umode_t		mode;   /* Mount mode for root directory */
+	atomic_t	next_generation;
+	/* inode tracking */
+	struct mutex inode_table_mutex;
+	unsigned int	s_inodes_count;  /* total inodes count (used or free) */
+	unsigned int	s_free_inodes_count;    /* free inodes count */
+	unsigned int	s_inodes_used_count;
+	unsigned int	s_free_inode_hint;
+
+	unsigned long num_blocknode_allocated;
+
+	/* Journaling related structures */
+	uint32_t    next_transaction_id;
+	uint32_t    jsize;
+	void       *journal_base_addr;
+	struct mutex journal_mutex;
+	struct task_struct *log_cleaner_thread;
+	wait_queue_head_t  log_cleaner_wait;
+	bool redo_log;
+
+	/* truncate list related structures */
+	struct list_head s_truncate;
+	struct mutex s_truncate_lock;
 };
 
 static inline struct pmfs_sb_info *PMFS_SB(struct super_block *sb)
@@ -520,6 +576,8 @@ static inline void check_eof_blocks(struct super_block *sb,
 			<< sb->s_blocksize_bits))
 		pi->i_flags &= cpu_to_le32(~PMFS_EOFBLOCKS_FL);
 }
+
+#include "wprotect.h"
 
 /*
  * Inodes and files operations
