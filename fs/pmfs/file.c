@@ -250,7 +250,7 @@ static int pmfs_flush(struct file *file, fl_owner_t id)
 	int ret = 0;
 	/* if the file was opened for writing, make it persistent.
 	 * TODO: Should we be more smart to check if the file was modified? */
-	if (file->f_flags & FMODE_WRITE) {
+	if (file->f_mode & FMODE_WRITE) {
 		PERSISTENT_MARK();
 		PERSISTENT_BARRIER();
 	}
