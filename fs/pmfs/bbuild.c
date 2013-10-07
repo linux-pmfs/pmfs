@@ -68,9 +68,9 @@ static void pmfs_init_blockmap_from_inode(struct super_block *sb)
 	sbi->num_blocknode_allocated = 0;
 	for (i=0; i<num_blocknode; i++) {
 		index = i & 0xFF;
-		if (i == (i & 0xFFFFFFFFFFFFFF00)) {
+		if (index == 0) {
 			/* Find and get new data block */
-			blocknr = i >> 8; //256 Entries in a block
+			blocknr = i >> 8; /* 256 Entries in a block */
 			bp = __pmfs_find_data_block(sb, pi, blocknr);
 			p = pmfs_get_block(sb, bp);
 		}
