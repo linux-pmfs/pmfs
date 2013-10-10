@@ -163,10 +163,18 @@ static ssize_t pmfs_file_write_fast(struct super_block *sb, struct inode *inode,
 	return ret;
 }
 
+/*
+ * blk_off is used in different ways depending on whether the edge block is
+ * at the beginning or end of the write. If it is at the beginning, we zero from
+ * start-of-block to 'blk_off'. If it is the end block, we zero from 'blk_off' to
+ * end-of-block
+ */
 static inline void pmfs_clear_edge_blk (struct super_block *sb, struct
-	pmfs_inode *pi, bool new_blk, unsigned long block)
+	pmfs_inode *pi, bool new_blk, unsigned long block, size_t blk_off,
+	bool is_end_blk)
 {
 	void *ptr;
+	size_t count;
 	unsigned long blknr;
 
 	if (new_blk) {
@@ -174,8 +182,14 @@ static inline void pmfs_clear_edge_blk (struct super_block *sb, struct
 			sb->s_blocksize_bits);
 		ptr = pmfs_get_block(sb, __pmfs_find_data_block(sb, pi, blknr));
 		if (ptr != NULL) {
+			if (is_end_blk) {
+				ptr = ptr + blk_off - (blk_off % 8);
+				count = pmfs_inode_blk_size(pi) -
+					blk_off + (blk_off % 8);
+			} else
+				count = blk_off + (8 - (blk_off % 8));
 			pmfs_memunlock_range(sb, ptr,  pmfs_inode_blk_size(pi));
-			memset_nt(ptr, 0, pmfs_inode_blk_size(pi));
+			memset_nt(ptr, 0, count);
 			pmfs_memlock_range(sb, ptr,  pmfs_inode_blk_size(pi));
 		}
 	}
@@ -193,8 +207,9 @@ ssize_t pmfs_xip_file_write(struct file *filp, const char __user *buf,
 	loff_t pos;
 	u64 block;
 	bool new_sblk = false, new_eblk = false;
-	size_t count, offset, ret;
-	unsigned long start_blk, num_blocks, max_logentries;
+	size_t count, offset, eblk_offset, ret;
+	unsigned long start_blk, end_blk, num_blocks, max_logentries;
+	bool same_block;
 
 	sb_start_write(inode->i_sb);
 	mutex_lock(&inode->i_mutex);
@@ -220,9 +235,14 @@ ssize_t pmfs_xip_file_write(struct file *filp, const char __user *buf,
 	/* offset in the actual block size block */
 	offset = pos & (pmfs_inode_blk_size(pi) - 1);
 	start_blk = pos >> sb->s_blocksize_bits;
+	end_blk = start_blk + num_blocks - 1;
 
-	if ((((count + offset - 1) >> pmfs_inode_blk_shift(pi)) == 0) &&
-		(block = pmfs_find_data_block(inode, start_blk))) {
+	block = pmfs_find_data_block(inode, start_blk);
+
+	/* Referring to the inode's block size, not 4K */
+	same_block = (((count + offset - 1) >>
+			pmfs_inode_blk_shift(pi)) == 0) ? 1 : 0;
+	if (block && same_block) {
 		ret = pmfs_file_write_fast(sb, inode, pi, buf, count, pos,
 			ppos, block);
 		goto out_backing;
@@ -252,18 +272,18 @@ ssize_t pmfs_xip_file_write(struct file *filp, const char __user *buf,
 		if (pmfs_find_data_block(inode, start_blk) == 0)
 		    new_sblk = true;
 	}
-	if (((pos + count) & (pmfs_inode_blk_size(pi) - 1)) != 0) {
-		if (pmfs_find_data_block(inode, start_blk + num_blocks - 1)
-			== 0)
-		    new_eblk = true;
-	}
+
+	eblk_offset = (pos + count) & (pmfs_inode_blk_size(pi) - 1);
+	if ((eblk_offset != 0) &&
+			(pmfs_find_data_block(inode, end_blk) == 0))
+		new_eblk = true;
 
 	/* don't zero-out the allocated blocks */
 	pmfs_alloc_blocks(trans, inode, start_blk, num_blocks, false);
 
 	/* now zero out the edge blocks which will be partially written */
-	pmfs_clear_edge_blk(sb, pi, new_sblk, start_blk);
-	pmfs_clear_edge_blk(sb, pi, new_eblk, start_blk + num_blocks - 1);
+	pmfs_clear_edge_blk(sb, pi, new_sblk, start_blk, offset, false);
+	pmfs_clear_edge_blk(sb, pi, new_eblk, end_blk, eblk_offset, true);
 
 	written = __pmfs_xip_file_write(mapping, buf, count, pos, ppos);
 	if (written < 0 || written != count)
