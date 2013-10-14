@@ -9,6 +9,7 @@
  */
 
 #include <linux/fs.h>
+#include <linux/aio.h>
 #include <linux/pagemap.h>
 #include <linux/export.h>
 #include <linux/uio.h>
