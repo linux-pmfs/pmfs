@@ -224,33 +224,30 @@ out:
 	return retval;
 }
 
-static int pmfs_readdir(struct file *filp, void *dirent, filldir_t filldir)
+static int pmfs_readdir(struct file *file, struct dir_context *ctx)
 {
-	struct inode *inode = filp->f_dentry->d_inode;
+	struct inode *inode = file_inode(file);
 	struct super_block *sb = inode->i_sb;
 	struct pmfs_inode *pi;
 	char *blk_base;
-	int ret = 0, stored;
-	int error = 0;
 	unsigned long offset;
 	struct pmfs_direntry *de;
 	ino_t ino;
 
-	stored = 0;
-	offset = filp->f_pos & (sb->s_blocksize - 1);
-	while (!error && !stored && filp->f_pos < inode->i_size) {
-		unsigned long blk = filp->f_pos >> sb->s_blocksize_bits;
+	offset = ctx->pos & (sb->s_blocksize - 1);
+	while (ctx->pos < inode->i_size) {
+		unsigned long blk = ctx->pos >> sb->s_blocksize_bits;
 
 		blk_base =
 			pmfs_get_block(sb, pmfs_find_data_block(inode, blk));
 		if (!blk_base) {
 			pmfs_dbg("directory %lu contains a hole at offset %lld\n",
-				inode->i_ino, filp->f_pos);
-			filp->f_pos += sb->s_blocksize - offset;
+				inode->i_ino, ctx->pos);
+			ctx->pos += sb->s_blocksize - offset;
 			continue;
 		}
 #if 0
-		if (filp->f_version != inode->i_version) {
+		if (file->f_version != inode->i_version) {
 			for (i = 0; i < sb->s_blocksize && i < offset; ) {
 				de = (struct pmfs_direntry *)(blk_base + i);
 				/* It's too expensive to do a full
@@ -265,43 +262,38 @@ static int pmfs_readdir(struct file *filp, void *dirent, filldir_t filldir)
 				i += le16_to_cpu(de->de_len);
 			}
 			offset = i;
-			filp->f_pos =
-				(filp->f_pos & ~(sb->s_blocksize - 1)) | offset;
-			filp->f_version = inode->i_version;
+			ctx->pos =
+				(ctx->pos & ~(sb->s_blocksize - 1)) | offset;
+			file->f_version = inode->i_version;
 		}
 #endif
-		while (!error && filp->f_pos < inode->i_size
+		while (ctx->pos < inode->i_size
 		       && offset < sb->s_blocksize) {
 			de = (struct pmfs_direntry *)(blk_base + offset);
 			if (!pmfs_check_dir_entry("pmfs_readdir", inode, de,
 						   blk_base, offset)) {
-				/* On error, skip the f_pos to the next block. */
-				filp->f_pos = (filp->f_pos | (sb->s_blocksize - 1)) + 1;
-				ret = stored;
-				goto out;
+				/* On error, skip to the next block. */
+				ctx->pos = ALIGN(ctx->pos, sb->s_blocksize);
+				break;
 			}
 			offset += le16_to_cpu(de->de_len);
 			if (de->ino) {
 				ino = le64_to_cpu(de->ino);
 				pi = pmfs_get_inode(sb, ino);
-				error = filldir(dirent, de->name, de->name_len,
-						filp->f_pos, ino,
-						IF2DT(le16_to_cpu(pi->i_mode)));
-				if (error)
-					break;
-				stored++;
+				if (!dir_emit(ctx, de->name, de->name_len,
+					ino, IF2DT(le16_to_cpu(pi->i_mode))))
+					return 0;
 			}
-			filp->f_pos += le16_to_cpu(de->de_len);
+			ctx->pos += le16_to_cpu(de->de_len);
 		}
 		offset = 0;
 	}
-out:
-	return ret;
+	return 0;
 }
 
 const struct file_operations pmfs_dir_operations = {
 	.read		= generic_read_dir,
-	.readdir	= pmfs_readdir,
+	.iterate	= pmfs_readdir,
 	.fsync		= noop_fsync,
 	.unlocked_ioctl = pmfs_ioctl,
 #ifdef CONFIG_COMPAT
