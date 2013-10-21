@@ -258,10 +258,6 @@ static int pmfs_flush(struct file *file, fl_owner_t id)
 	return ret;
 }
 
-extern unsigned long arch_get_unmapped_area_sz(struct file *file,
-	unsigned long addr0, unsigned long len, unsigned long align_size,
-	unsigned long pgoff, unsigned long flags);
-
 static unsigned long
 pmfs_get_unmapped_area(struct file *file, unsigned long addr,
 			unsigned long len, unsigned long pgoff,
@@ -272,6 +268,7 @@ pmfs_get_unmapped_area(struct file *file, unsigned long addr,
 	struct mm_struct *mm = current->mm;
 	struct inode *inode = file->f_mapping->host;
 	struct pmfs_inode *pi = pmfs_get_inode(inode->i_sb, inode->i_ino);
+	struct vm_unmapped_area_info info;
 
 	if (len > TASK_SIZE)
 		return -ENOMEM;
@@ -300,18 +297,17 @@ pmfs_get_unmapped_area(struct file *file, unsigned long addr,
 			return addr;
 	}
 
-	return arch_get_unmapped_area_sz(file, addr, len, align_size, pgoff,
-					 flags);
-#if 0
-	if (mm->get_unmapped_area == arch_get_unmapped_area)
-		return pmfs_get_unmapped_area_bottomup(file, addr, len,
-							align_size, pgoff,
-							flags);
-	else
-		return pmfs_get_unmapped_area_topdown(file, addr, len,
-						       align_size, pgoff,
-						       flags);
-#endif
+	/*
+	 * FIXME: Using the following values for low_limit and high_limit
+	 * implicitly disables ASLR. Awaiting a better way to have this fixed.
+	 */
+	info.flags = 0;
+	info.length = len;
+	info.low_limit = TASK_UNMAPPED_BASE;
+	info.high_limit = TASK_SIZE;
+	info.align_mask = align_size - 1;
+	info.align_offset = 0;
+	return vm_unmapped_area(&info);
 }
 
 const struct file_operations pmfs_xip_file_operations = {
