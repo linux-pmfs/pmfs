@@ -153,7 +153,6 @@ enum {
 	Opt_num_inodes, Opt_mode, Opt_uid,
 	Opt_gid, Opt_blocksize, Opt_wprotect, Opt_wprotectold,
 	Opt_err_cont, Opt_err_panic, Opt_err_ro,
-	Opt_backing, Opt_backing_opt,
 	Opt_hugemmap, Opt_nohugeioremap, Opt_dbgmask, Opt_err
 };
 
@@ -171,8 +170,6 @@ static const match_table_t tokens = {
 	{ Opt_err_cont,	     "errors=continue"	  },
 	{ Opt_err_panic,     "errors=panic"	  },
 	{ Opt_err_ro,	     "errors=remount-ro"  },
-	{ Opt_backing,	     "backing=%s"	  },
-	{ Opt_backing_opt,   "backing_opt=%u"	  },
 	{ Opt_hugemmap,	     "hugemmap"		  },
 	{ Opt_nohugeioremap, "nohugeioremap"	  },
 	{ Opt_dbgmask,	     "dbgmask=%u"	  },
@@ -326,14 +323,6 @@ static int pmfs_parse_options(char *options, struct pmfs_sb_info *sbi,
 			if (match_int(&args[0], &option))
 				goto bad_val;
 			pmfs_dbgmask = option;
-			break;
-		case Opt_backing:
-			strncpy(sbi->pmfs_backing_file, args[0].from, 255);
-			break;
-		case Opt_backing_opt:
-			if (match_int(&args[0], &option))
-				goto bad_val;
-			sbi->pmfs_backing_option = option;
 			break;
 		default: {
 			goto bad_opt;
@@ -517,8 +506,6 @@ static inline void set_default_opts(struct pmfs_sb_info *sbi)
 	/* set_opt(sbi->s_mount_opt, PROTECT); */
 	set_opt(sbi->s_mount_opt, HUGEIOREMAP);
 	set_opt(sbi->s_mount_opt, ERRORS_CONT);
-	sbi->pmfs_backing_file[0] = '\0';
-	sbi->pmfs_backing_option = 0;
 	sbi->jsize = PMFS_DEFAULT_JOURNAL_SIZE;
 }
 
@@ -694,15 +681,10 @@ static int pmfs_fill_super(struct super_block *sb, void *data, int silent)
 	/* Init a new pmfs instance */
 	if (initsize) {
 		root_pi = pmfs_init(sb, initsize);
-
 		if (IS_ERR(root_pi))
 			goto out;
-
 		super = pmfs_get_super(sb);
-
 		goto setup_sb;
-	} else {
-		pmfs_load_from_file(sb);
 	}
 	pmfs_dbg_verbose("checking physical address 0x%016llx for pmfs image\n",
 		  (u64)sbi->phys_addr);
@@ -947,7 +929,6 @@ static void pmfs_put_super(struct super_block *sb)
 	if (sbi->virt_addr) {
 		pmfs_save_blocknode_mappings(sb);
 		pmfs_journal_uninit(sb);
-		pmfs_store_to_file(sb);
 		pmfs_iounmap(sbi->virt_addr, size, pmfs_is_wprotected(sb));
 		sbi->virt_addr = NULL;
 		release_mem_region(sbi->phys_addr, size);

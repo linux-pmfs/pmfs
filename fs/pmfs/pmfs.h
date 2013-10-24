@@ -269,7 +269,6 @@ struct pmfs_sb_info {
 	unsigned long	block_start;
 	unsigned long	block_end;
 	unsigned long	num_free_blocks;
-	char		pmfs_backing_file[256];
 	struct mutex 	s_lock;	/* protects the SB's buffer-head */
 
 	/*
@@ -608,12 +607,6 @@ int pmfs_check_integrity(struct super_block *sb,
 	struct pmfs_super_block *super);
 void *pmfs_ioremap(struct super_block *sb, phys_addr_t phys_addr,
 	ssize_t size);
-
-/* Emulated persistence APIs */
-void pmfs_set_backing_file(char *file_str);
-void pmfs_set_backing_option(int option);
-void pmfs_load_from_file(struct super_block *sb);
-void pmfs_store_to_file(struct super_block *sb);
 
 int pmfs_check_dir_entry(const char *function, struct inode *dir,
 			  struct pmfs_direntry *de, u8 *base,
