@@ -54,45 +54,6 @@ jsize: This option specifies the journal size. Default is 4MB.
 hugemmap: This option enables support for using huge pages in memory-mapped
 files.
 
-backing: This option specifies a disk based file which should be used as a
-persistent backing store for pmfs during mount and unmount.
-
-#mount -t pmfs -o physaddr=0x100000000,init=2G,backing="/data/pmfs.img" none /mnt/pmfs
-
-The above example initializes a 2GB PMFS and during unmount it saves the file
-system into a file /data/pmfs.img
-
-#mount -t pmfs -o physaddr=0x100000000,backing="/data/pmfs.img" none /mnt/pmfs
-
-The above example loads the PMFS from /data/pmfs.img during mount and saves
-the file system to /data/pmfs.img during unmount.
-
-backing_opt: This option specifies how the backing file should be used. It can
-have 2 values;
-
-1: This value means that PMFS will not be loaded from the backing file during
-mount. It is either created using 'init=' option, or the pre-existing file
-system in the memory is used.
-
-2: This value means that the PMFS will not be stored to the backing file during
-unmount.
-
-If backing_opt is not specified, PMFS will load the file system from backing
-file (if init= option is not specified) during mount and store the file system
-to the backing file during unmount.
-
-#mount -t pmfs -o physaddr=0x100000000,backing="/data/pmfs.img",backing_opt=2 none /mnt/pmfs
-
-The above example loads the PMFS from /data/pmfs.img during mount but does not
-save the file system to /data/pmfs.img during unmount.
-
-#mount -t pmfs -o physaddr=0x100000000,backing="/data/pmfs.img",backing_opt=1 none /mnt/pmfs
-
-The above example assumes that there is a PMFS already present at the specified
-physical address (create during an earlier mount). It uses that same PMFS
-instead of loading it from /data/pmfs.img. It, however, saves the file system
-to /data/pmfs.img during unmount.
-
 For full list of options, please refer to the source code.
 
 
