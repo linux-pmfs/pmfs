@@ -344,8 +344,6 @@ static int pmfs_symlink(struct inode *dir, struct dentry *dentry,
 
 	err = pmfs_add_nondir(trans, dir, dentry, inode);
 	if (err) {
-		/* free up the allocated block to the symlink inode */
-		pmfs_setsize(inode, 0);
 		pmfs_abort_transaction(sb, trans);
 		goto out;
 	}
