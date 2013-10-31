@@ -282,7 +282,7 @@ static int pmfs_mknod(struct inode *dir, struct dentry *dentry, umode_t mode,
 	}
 
 	inode = pmfs_new_inode(trans, dir, mode, &dentry->d_name);
-	if (!IS_ERR(inode))
+	if (IS_ERR(inode))
 		goto out_err;
 	init_special_inode(inode, mode, rdev);
 	inode->i_op = &pmfs_special_inode_operations;
