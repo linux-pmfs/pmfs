@@ -92,7 +92,7 @@ static inline int pmfs_has_huge_ioremap(struct super_block *sb)
 
 void *pmfs_ioremap(struct super_block *sb, phys_addr_t phys_addr, ssize_t size)
 {
-	void *retval;
+	void __iomem *retval;
 	int protect, hugeioremap;
 
 	if (sb) {
@@ -109,7 +109,8 @@ void *pmfs_ioremap(struct super_block *sb, phys_addr_t phys_addr, ssize_t size)
 	 * restriction depends on STRICT_DEVMEM option. If this option is
 	 * disabled or not available we mark the region only as busy.
 	 */
-	retval = request_mem_region_exclusive(phys_addr, size, "pmfs");
+	retval = (void __iomem *)
+			request_mem_region_exclusive(phys_addr, size, "pmfs");
 	if (!retval)
 		goto fail;
 
@@ -126,12 +127,12 @@ void *pmfs_ioremap(struct super_block *sb, phys_addr_t phys_addr, ssize_t size)
 	}
 
 fail:
-	return retval;
+	return (void __force *)retval;
 }
 
 static inline int pmfs_iounmap(void *virt_addr, ssize_t size, int protected)
 {
-	iounmap(virt_addr);
+	iounmap((void __iomem __force *)virt_addr);
 	return 0;
 }
 
