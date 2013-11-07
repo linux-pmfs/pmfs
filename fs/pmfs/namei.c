@@ -140,7 +140,7 @@ static ino_t pmfs_inode_by_name(struct inode *dir, struct qstr *entry,
 	const u8 *name = entry->name;
 	struct super_block *sb = dir->i_sb;
 	unsigned long block, start;
-	struct pmfs_inode_vfs *si = PMFS_I(dir);
+	struct pmfs_inode_info *si = PMFS_I(dir);
 
 	pi = pmfs_get_inode(sb, dir->i_ino);
 

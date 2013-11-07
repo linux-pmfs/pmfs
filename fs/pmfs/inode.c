@@ -1308,7 +1308,7 @@ static void pmfs_block_truncate_page(struct inode *inode, loff_t newsize)
 void pmfs_truncate_del(struct inode *inode)
 {
 	struct list_head *prev;
-	struct pmfs_inode_vfs *si = PMFS_I(inode);
+	struct pmfs_inode_info *si = PMFS_I(inode);
 	struct super_block *sb = inode->i_sb;
 	struct pmfs_sb_info *sbi = PMFS_SB(sb);
 	struct pmfs_inode_truncate_item *head = pmfs_get_truncate_list_head(sb);
@@ -1339,7 +1339,7 @@ void pmfs_truncate_del(struct inode *inode)
 			sizeof(head->i_next_truncate), false);
 	} else {
 		struct inode *i_prv = &list_entry(prev,
-			struct pmfs_inode_vfs, i_truncated)->vfs_inode;
+			struct pmfs_inode_info, i_truncated)->vfs_inode;
 		struct pmfs_inode_truncate_item *li_prv = 
 				pmfs_get_truncate_item(sb, i_prv->i_ino);
 		pmfs_memunlock_range(sb, li_prv, sizeof(*li_prv));

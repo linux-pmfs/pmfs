@@ -249,7 +249,7 @@ struct pmfs_blocknode {
 	unsigned long block_high;
 };
 
-struct pmfs_inode_vfs {
+struct pmfs_inode_info {
 	__u32   i_dir_start_lookup;
 	struct list_head i_truncated;
 	struct inode	vfs_inode;
@@ -316,9 +316,9 @@ static inline struct pmfs_sb_info *PMFS_SB(struct super_block *sb)
 	return sb->s_fs_info;
 }
 
-static inline struct pmfs_inode_vfs *PMFS_I(struct inode *inode)
+static inline struct pmfs_inode_info *PMFS_I(struct inode *inode)
 {
-	return container_of(inode, struct pmfs_inode_vfs, vfs_inode);
+	return container_of(inode, struct pmfs_inode_info, vfs_inode);
 }
 
 /* If this is part of a read-modify-write of the super block,
