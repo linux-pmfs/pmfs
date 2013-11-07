@@ -48,7 +48,6 @@ extern int pmfs_writeable(void *vaddr, unsigned long size, int rw);
 extern int pmfs_xip_mem_protect(struct super_block *sb,
 				 void *vaddr, unsigned long size, int rw);
 
-extern spinlock_t pmfs_writeable_lock;
 static inline int pmfs_is_protected(struct super_block *sb)
 {
 	struct pmfs_sb_info *sbi = (struct pmfs_sb_info *)sb->s_fs_info;
@@ -56,20 +55,13 @@ static inline int pmfs_is_protected(struct super_block *sb)
 	return sbi->s_mount_opt & PMFS_MOUNT_PROTECT;
 }
 
-static inline int pmfs_is_protected_old(struct super_block *sb)
-{
-	struct pmfs_sb_info *sbi = (struct pmfs_sb_info *)sb->s_fs_info;
-
-	return sbi->s_mount_opt & PMFS_MOUNT_PROTECT_OLD;
-}
-
 static inline int pmfs_is_wprotected(struct super_block *sb)
 {
-	return pmfs_is_protected(sb) || pmfs_is_protected_old(sb);
+	return pmfs_is_protected(sb);
 }
 
 static inline void
-__pmfs_memunlock_range(void *p, unsigned long len, int hold_lock)
+__pmfs_memunlock_range(void *p, unsigned long len)
 {
 	/*
 	 * NOTE: Ideally we should lock all the kernel to be memory safe
@@ -78,44 +70,34 @@ __pmfs_memunlock_range(void *p, unsigned long len, int hold_lock)
 	 * the operations at fs level. We can't disable the interrupts
 	 * because we could have a deadlock in this path.
 	 */
-	if (hold_lock)
-		spin_lock(&pmfs_writeable_lock);
 	pmfs_writeable(p, len, 1);
 }
 
 static inline void
-__pmfs_memlock_range(void *p, unsigned long len, int hold_lock)
+__pmfs_memlock_range(void *p, unsigned long len)
 {
 	pmfs_writeable(p, len, 0);
-	if (hold_lock)
-		spin_unlock(&pmfs_writeable_lock);
 }
 
 static inline void pmfs_memunlock_range(struct super_block *sb, void *p,
 					 unsigned long len)
 {
 	if (pmfs_is_protected(sb))
-		__pmfs_memunlock_range(p, len, 0);
-	else if (pmfs_is_protected_old(sb))
-		__pmfs_memunlock_range(p, len, 1);
+		__pmfs_memunlock_range(p, len);
 }
 
 static inline void pmfs_memlock_range(struct super_block *sb, void *p,
 				       unsigned long len)
 {
 	if (pmfs_is_protected(sb))
-		__pmfs_memlock_range(p, len, 0);
-	else if (pmfs_is_protected_old(sb))
-		__pmfs_memlock_range(p, len, 1);
+		__pmfs_memlock_range(p, len);
 }
 
 static inline void pmfs_memunlock_super(struct super_block *sb,
 					 struct pmfs_super_block *ps)
 {
 	if (pmfs_is_protected(sb))
-		__pmfs_memunlock_range(ps, PMFS_SB_SIZE, 0);
-	else if (pmfs_is_protected_old(sb))
-		__pmfs_memunlock_range(ps, PMFS_SB_SIZE, 1);
+		__pmfs_memunlock_range(ps, PMFS_SB_SIZE);
 }
 
 static inline void pmfs_memlock_super(struct super_block *sb,
@@ -123,18 +105,14 @@ static inline void pmfs_memlock_super(struct super_block *sb,
 {
 	pmfs_sync_super(ps);
 	if (pmfs_is_protected(sb))
-		__pmfs_memlock_range(ps, PMFS_SB_SIZE, 0);
-	else if (pmfs_is_protected_old(sb))
-		__pmfs_memlock_range(ps, PMFS_SB_SIZE, 1);
+		__pmfs_memlock_range(ps, PMFS_SB_SIZE);
 }
 
 static inline void pmfs_memunlock_inode(struct super_block *sb,
 					 struct pmfs_inode *pi)
 {
 	if (pmfs_is_protected(sb))
-		__pmfs_memunlock_range(pi, PMFS_SB_SIZE, 0);
-	else if (pmfs_is_protected_old(sb))
-		__pmfs_memunlock_range(pi, PMFS_SB_SIZE, 1);
+		__pmfs_memunlock_range(pi, PMFS_SB_SIZE);
 }
 
 static inline void pmfs_memlock_inode(struct super_block *sb,
@@ -142,25 +120,19 @@ static inline void pmfs_memlock_inode(struct super_block *sb,
 {
 	/* pmfs_sync_inode(pi); */
 	if (pmfs_is_protected(sb))
-		__pmfs_memlock_range(pi, PMFS_SB_SIZE, 0);
-	else if (pmfs_is_protected_old(sb))
-		__pmfs_memlock_range(pi, PMFS_SB_SIZE, 1);
+		__pmfs_memlock_range(pi, PMFS_SB_SIZE);
 }
 
 static inline void pmfs_memunlock_block(struct super_block *sb, void *bp)
 {
 	if (pmfs_is_protected(sb))
-		__pmfs_memunlock_range(bp, sb->s_blocksize, 0);
-	else if (pmfs_is_protected_old(sb))
-		__pmfs_memunlock_range(bp, sb->s_blocksize, 1);
+		__pmfs_memunlock_range(bp, sb->s_blocksize);
 }
 
 static inline void pmfs_memlock_block(struct super_block *sb, void *bp)
 {
 	if (pmfs_is_protected(sb))
-		__pmfs_memlock_range(bp, sb->s_blocksize, 0);
-	else if (pmfs_is_protected_old(sb))
-		__pmfs_memlock_range(bp, sb->s_blocksize, 1);
+		__pmfs_memlock_range(bp, sb->s_blocksize);
 }
 
 #endif

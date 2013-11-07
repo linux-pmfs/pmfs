@@ -19,8 +19,6 @@
 #include <linux/io.h>
 #include "pmfs.h"
 
-DEFINE_SPINLOCK(pmfs_writeable_lock);
-
 static inline void wprotect_disable(void)
 {
 	unsigned long cr0_val;
@@ -37,28 +35,6 @@ static inline void wprotect_enable(void)
 	cr0_val = read_cr0();
 	cr0_val |= X86_CR0_WP;
 	write_cr0(cr0_val);
-}
-
-/* FIXME: Use PAGE RW Bit */
-static int pmfs_writeable_old(void *vaddr, unsigned long size, int rw)
-{
-	int ret = 0;
-	unsigned long nrpages = size >> PAGE_SHIFT;
-	unsigned long addr = (unsigned long)vaddr;
-
-	/* Page aligned */
-	addr &= PAGE_MASK;
-
-	if (size & (PAGE_SIZE - 1))
-		nrpages++;
-
-	if (rw)
-		ret = set_memory_rw(addr, nrpages);
-	else
-		ret = set_memory_ro(addr, nrpages);
-
-	BUG_ON(ret);
-	return 0;
 }
 
 /* FIXME: Assumes that we are always called in the right order.
@@ -83,7 +59,5 @@ int pmfs_xip_mem_protect(struct super_block *sb, void *vaddr,
 {
 	if (!pmfs_is_wprotected(sb))
 		return 0;
-	if (pmfs_is_protected_old(sb))
-		return pmfs_writeable_old(vaddr, size, rw);
 	return pmfs_writeable(vaddr, size, rw);
 }
